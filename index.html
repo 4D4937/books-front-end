@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>图书列表</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>图书列表</h1>
+        <table id="booksTable">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>标题</th>
+                    <th>作者</th>
+                    <th>出版社</th>
+                    <th>出版年份</th>
+                </tr>
+            </thead>
+            <tbody id="booksBody"></tbody>
+        </table>
+    </div>
+
+    <script>
+        fetch('https://books-five-virid.vercel.app/api/books')
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    const tbody = document.getElementById('booksBody');
+                    data.data.forEach(book => {
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${book.id}</td>
+                                <td>${book.title}</td>
+                                <td>${book.author}</td>
+                                <td>${book.publisher}</td>
+                                <td>${book.publish_year}</td>
+                            </tr>
+                        `;
+                    });
+                }
+            })
+            .catch(error => console.error('错误:', error));
+    </script>
+</body>
+</html>
