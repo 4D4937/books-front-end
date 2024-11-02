@@ -1,57 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <title>目录索引</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 20px auto;
-            padding: 0 20px;
-        }
-        .file-list {
-            list-style: none;
-            padding: 0;
-        }
-        .file-list li {
-            margin: 10px 0;
-        }
-        .file-list a {
-            color: #0066cc;
-            text-decoration: none;
-        }
-        .file-list a:hover {
-            text-decoration: underline;
-        }
-    </style>
+    <title>Hello</title>
 </head>
 <body>
-    <h1>HTML文件索引</h1>
-    <ul class="file-list" id="fileList">
-        <!-- 文件列表将通过JavaScript动态生成 -->
-    </ul>
-
-    <script>
-        fetch('.')
-            .then(response => response.text())
-            .then(text => {
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(text, 'text/html');
-                const links = Array.from(doc.querySelectorAll('a'))
-                    .filter(a => a.href.toLowerCase().endsWith('.html'))
-                    .filter(a => !a.href.toLowerCase().endsWith('index.html'));
-                
-                const fileList = document.getElementById('fileList');
-                links.forEach(link => {
-                    const li = document.createElement('li');
-                    const a = document.createElement('a');
-                    a.href = link.href;
-                    a.textContent = decodeURIComponent(link.href.split('/').pop());
-                    li.appendChild(a);
-                    fileList.appendChild(li);
-                });
-            });
-    </script>
+    <h1>Hello</h1>
 </body>
 </html>
