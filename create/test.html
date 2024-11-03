@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="新药研发案列，作者：JOHN B TAYLOR AND DAVID J TRIGGLE，出版社：北京：科学出版社，出版时间：2007，ISBN：9787030203625，全书246页。提供PDF电子书下载，支持文字检索，阅读体验好。">
-    <title>新药研发案列 pdf</title>
+    <meta name="description" content="${title}，作者：${author}，出版社：${publisher}，出版时间：${publish_date}，ISBN：${isbn}，全书${pages}页。提供PDF电子书下载，支持文字检索，阅读体验好。">
+    <title>${title} pdf</title>
     <style>
         * {
             margin: 0;
@@ -184,6 +184,44 @@
             margin-left: 10px;
         }
 
+        .related-books {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #eaeaea;
+        }
+
+        .related-title {
+            font-size: 20px;
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+
+        .related-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .related-item {
+            color: #3498db;
+            text-decoration: none;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .related-item:hover {
+            background: #e9ecef;
+            transform: translateY(-2px);
+        }
+
+        .loading-text {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+        }
+
         /* 移动端响应式样式 */
         @media screen and (max-width: 768px) {
             .header-container {
@@ -220,6 +258,10 @@
                 padding: 12px 24px;
                 font-size: 16px;
             }
+
+            .related-list {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -239,28 +281,28 @@
 
     <div class="container">
         <div class="book-card">
-            <h1 class="book-title">新药研发案列 pdf 下载</h1>
+            <h1 class="book-title">${title} pdf 下载</h1>
 
             <div class="book-info">
                 <div class="info-item">
                     <div class="info-label">作者</div>
-                    <div class="info-value">JOHN B TAYLOR AND DAVID J TRIGGLE</div>
+                    <div class="info-value">${author}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">出版社</div>
-                    <div class="info-value">北京：科学出版社</div>
+                    <div class="info-value">${publisher}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">出版时间</div>
-                    <div class="info-value">2007</div>
+                    <div class="info-value">${publish_date}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">ISBN</div>
-                    <div class="info-value">9787030203625</div>
+                    <div class="info-value">${isbn}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">页数</div>
-                    <div class="info-value">246页</div>
+                    <div class="info-value">${pages}页</div>
                 </div>
             </div>
             
@@ -279,7 +321,64 @@
                 <div class="feature-item">支持各种设备阅读</div>
                 <div class="feature-item">高清原版扫描</div>
             </div>
+
+            <div class="related-books">
+                <h2 class="related-title">相关书籍推荐</h2>
+                <div id="relatedList" class="related-list">
+                    <div class="loading-text">正在加载推荐书籍...</div>
+                </div>
+            </div>
         </div>
     </div>
+
+    <script>
+        async function loadRandomBooks() {
+            const relatedList = document.getElementById('relatedList');
+            
+            try {
+                // 获取sitemap.xml
+                const response = await fetch('/sitemap.xml');
+                const text = await response.text();
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(text, 'text/xml');
+                
+                // 获取所有url节点
+                const urls = Array.from(xmlDoc.getElementsByTagName('url'));
+                const currentPath = window.location.pathname;
+                
+                // 过滤掉当前页面和非html页面
+                const validUrls = urls.filter(url => {
+                    const loc = url.getElementsByTagName('loc')[0].textContent;
+                    return loc.endsWith('.html') && !loc.includes(currentPath);
+                });
+
+                // 随机选择5个url
+                const randomUrls = [];
+                const urlCount = validUrls.length;
+                while (randomUrls.length < 5 && randomUrls.length < urlCount) {
+                    const randomIndex = Math.floor(Math.random() * validUrls.length);
+                    const url = validUrls[randomIndex];
+                    if (!randomUrls.includes(url)) {
+                        randomUrls.push(url);
+                        validUrls.splice(randomIndex, 1);
+                    }
+                }
+
+                // 显示随机选择的书籍
+                relatedList.innerHTML = randomUrls.map(url => {
+                    const loc = url.getElementsByTagName('loc')[0].textContent;
+                    const title = decodeURIComponent(loc.split('/').pop().replace('.html', ''));
+                    return `<a href="${loc}" class="related-item">${title}</a>`;
+                }).join('');
+
+            } catch (error) {
+                console.error('加载推荐书籍失败:', error);
+                relatedList.innerHTML = '<div class="loading-text">加载推荐书籍失败，请刷新页面重试</div>';
+            }
+        }
+
+        // 页面加载时加载随机书籍
+        loadRandomBooks();
+    </script>
 </body>
 </html>
