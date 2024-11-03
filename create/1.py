@@ -1,9 +1,8 @@
 import pandas as pd
 import os
-import datetime  # 改为直接导入
+import datetime
 
 def create_html_pages():
-    # 读取CSV文件
     try:
         print("当前工作目录:", os.getcwd())
         print("目录中的文件:", os.listdir())
@@ -11,7 +10,6 @@ def create_html_pages():
         df = pd.read_csv('kx.csv')
         print(f"总共有{len(df)}条数据")
         
-        # 询问要生成多少个页面
         while True:
             try:
                 num_pages = int(input("请输入要生成的页面数量(输入0生成所有): "))
@@ -21,19 +19,26 @@ def create_html_pages():
             except ValueError:
                 print("请输入有效的数字")
         
-        # 如果输入0,生成所有页面
         if num_pages == 0:
             num_pages = len(df)
             
-        # 创建输出目录
         output_dir = 'output_html'
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
             
-        # 读取模板文件
         try:
             with open('t.html', 'r', encoding='utf-8') as f:
                 template = f.read()
+                
+            # 分割模板,保护script部分
+            parts = template.split('<script>')
+            if len(parts) > 1:
+                before_script = parts[0]
+                script_and_after = '<script>' + ''.join(parts[1:])
+            else:
+                before_script = template
+                script_and_after = ''
+                
         except FileNotFoundError:
             print("错误: 找不到template.html模板文件")
             return
@@ -41,12 +46,10 @@ def create_html_pages():
             print(f"读取模板文件时发生错误: {str(e)}")
             return
             
-        # 生成HTML文件
         for i in range(num_pages):
             try:
                 row = df.iloc[i]
                 
-                # 准备替换的数据
                 data = {
                     'title': str(row['title']),
                     'author': str(row['author']) if pd.notna(row['author']) else '未知',
@@ -56,15 +59,15 @@ def create_html_pages():
                     'pages': str(row['page_count']) if pd.notna(row['page_count']) else '未知'
                 }
                 
-                # 替换模板中的变量
-                html_content = template
+                # 只替换script之前的部分
+                html_content = before_script
                 for key, value in data.items():
                     html_content = html_content.replace(f'${{{key}}}', value)
-                    
-                # 使用id作为文件名
-                filename = f"{row['id']}.html"
                 
-                # 写入文件
+                # 添加回script部分
+                html_content += script_and_after
+                    
+                filename = f"{row['id']}.html"
                 file_path = os.path.join(output_dir, filename)
                 with open(file_path, 'w', encoding='utf-8') as f:
                     f.write(html_content)

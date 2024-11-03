@@ -434,7 +434,7 @@
                     const items = relatedList.getElementsByClassName('related-item');
                     if (items[index]) {
                         if (title) {
-                            items[index].outerHTML = `<a href="${loc}" class="related-item">北京科学技术志  下</a>`;
+                            items[index].outerHTML = `<a href="${loc}" class="related-item">${title}</a>`;
                         } else {
                             items[index].outerHTML = `<a href="${loc}" class="related-item">未知标题</a>`;
                         }
