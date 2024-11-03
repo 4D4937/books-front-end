@@ -44,7 +44,7 @@ def generate_sitemap(base_url):
 
 if __name__ == '__main__':
     # 设置您的网站基础URL
-    base_url = 'https://liberpdf.shop/'
+    base_url = 'https://liberpdf.top/'
     
     # 生成站点地图
     sitemap_content = generate_sitemap(base_url)
