@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="${title}，作者：${author}，出版社：${publisher}，出版时间：${publish_date}，ISBN：${isbn}，全书${pages}页。提供PDF电子书下载，支持文字检索，阅读体验好。">
-    <title>${title} pdf</title>
+    <meta name="description" content="电工原理与计算方法  下，作者：黄礼镇，黄椿熙，出版社：北京：科学出版社，出版时间：1987.0，ISBN：未知，全书1330.0页。提供PDF电子书下载，支持文字检索，阅读体验好。">
+    <title>电工原理与计算方法  下 pdf</title>
     <style>
         * {
             margin: 0;
@@ -300,28 +300,28 @@
 
     <div class="container">
         <div class="book-card">
-            <h1 class="book-title">${title} pdf 下载</h1>
+            <h1 class="book-title">电工原理与计算方法  下 pdf 下载</h1>
 
             <div class="book-info">
                 <div class="info-item">
                     <div class="info-label">作者</div>
-                    <div class="info-value">${author}</div>
+                    <div class="info-value">黄礼镇，黄椿熙</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">出版社</div>
-                    <div class="info-value">${publisher}</div>
+                    <div class="info-value">北京：科学出版社</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">出版时间</div>
-                    <div class="info-value">${publish_date}</div>
+                    <div class="info-value">1987.0</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">ISBN</div>
-                    <div class="info-value">${isbn}</div>
+                    <div class="info-value">未知</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">页数</div>
-                    <div class="info-value">${pages}页</div>
+                    <div class="info-value">1330.0页</div>
                 </div>
             </div>
             
@@ -411,7 +411,7 @@
                 // 随机选择10个url
                 const randomUrls = [];
                 const urlCount = validUrls.length;
-                while (randomUrls.length < 10 && randomUrls.length < urlCount) {
+                while (randomUrls.length < 9 && randomUrls.length < urlCount) {
                     const randomIndex = Math.floor(Math.random() * validUrls.length);
                     const url = validUrls[randomIndex];
                     if (!randomUrls.includes(url)) {
@@ -434,7 +434,7 @@
                     const items = relatedList.getElementsByClassName('related-item');
                     if (items[index]) {
                         if (title) {
-                            items[index].outerHTML = `<a href="${loc}" class="related-item">${title}</a>`;
+                            items[index].outerHTML = `<a href="${loc}" class="related-item">电工原理与计算方法  下</a>`;
                         } else {
                             items[index].outerHTML = `<a href="${loc}" class="related-item">未知标题</a>`;
                         }
