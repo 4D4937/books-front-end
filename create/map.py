@@ -6,17 +6,15 @@ def generate_sitemap(base_url):
     # 获取上级目录的路径
     parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     
-    # 获取上级目录下所有html文件
+    # 只获取上级目录中的html文件（不包含子目录）
     html_files = []
-    for root, dirs, files in os.walk(parent_dir):
-        for file in files:
-            if file.endswith('.html'):
-                # 使用 os.path.normpath 确保路径格式正确
-                rel_path = os.path.normpath(os.path.join(root, file))
-                # 计算相对于父目录的路径
-                url_path = os.path.relpath(rel_path, parent_dir).replace('\\', '/')
-                # 保存两种路径
-                html_files.append((rel_path, url_path))
+    for file in os.listdir(parent_dir):
+        if file.endswith('.html'):
+            # 使用 os.path.join 构建完整路径
+            full_path = os.path.join(parent_dir, file)
+            # URL 路径就是文件名
+            url_path = file
+            html_files.append((full_path, url_path))
 
     # 生成sitemap XML
     sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n'
