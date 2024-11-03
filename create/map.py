@@ -3,15 +3,18 @@ from datetime import datetime
 from urllib.parse import urljoin
 
 def generate_sitemap(base_url):
-    # 获取当前目录下所有html文件
+    # 获取上级目录的路径
+    parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    
+    # 获取上级目录下所有html文件
     html_files = []
-    for root, dirs, files in os.walk('.'):
+    for root, dirs, files in os.walk(parent_dir):
         for file in files:
             if file.endswith('.html'):
                 # 使用 os.path.normpath 确保路径格式正确
                 rel_path = os.path.normpath(os.path.join(root, file))
-                # 转换为URL格式的路径
-                url_path = rel_path.replace('\\', '/').lstrip('./')
+                # 计算相对于父目录的路径
+                url_path = os.path.relpath(rel_path, parent_dir).replace('\\', '/')
                 # 保存两种路径
                 html_files.append((rel_path, url_path))
 
