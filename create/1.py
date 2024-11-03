@@ -54,9 +54,9 @@ def create_html_pages():
                     'title': str(row['title']),
                     'author': str(row['author']) if pd.notna(row['author']) else '未知',
                     'publisher': str(row['publisher']) if pd.notna(row['publisher']) else '未知',
-                    'publish_date': str(row['publish_date']) if pd.notna(row['publish_date']) else '未知',
+                    'publish_date': str(int(float(row['publish_date']))) if pd.notna(row['publish_date']) else '未知',
                     'isbn': str(row['ISBN']) if pd.notna(row['ISBN']) else '未知',
-                    'pages': str(row['page_count']) if pd.notna(row['page_count']) else '未知'
+                    'pages': str(int(float(row['page_count']))) if pd.notna(row['page_count']) else '未知'
                 }
                 
                 # 只替换script之前的部分
