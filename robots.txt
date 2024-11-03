@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# Sitemap 文件位置
+Sitemap: https://liberpdf.shop/sitemap.xml
