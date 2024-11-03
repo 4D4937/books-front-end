@@ -198,14 +198,14 @@
 
         .related-list {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 15px;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 12px;
         }
 
         .related-item {
             color: #3498db;
             text-decoration: none;
-            padding: 12px 15px;
+            padding: 10px 12px;
             background: #f8f9fa;
             border-radius: 6px;
             transition: all 0.3s ease;
@@ -215,7 +215,6 @@
             white-space: nowrap;
             font-size: 14px;
             line-height: 1.4;
-            margin-bottom: 8px;
         }
 
         .related-item:hover {
@@ -409,10 +408,10 @@
                     return loc.endsWith('.html') && !loc.includes(currentPath);
                 });
 
-                // 随机选择5个url
+                // 随机选择10个url
                 const randomUrls = [];
                 const urlCount = validUrls.length;
-                while (randomUrls.length < 5 && randomUrls.length < urlCount) {
+                while (randomUrls.length < 10 && randomUrls.length < urlCount) {
                     const randomIndex = Math.floor(Math.random() * validUrls.length);
                     const url = validUrls[randomIndex];
                     if (!randomUrls.includes(url)) {
