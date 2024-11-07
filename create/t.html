@@ -83,14 +83,6 @@
             padding-bottom: 10px;
         }
 
-        .highlight-box {
-            background: #f8f9fa;
-            border-left: 4px solid #3498db;
-            padding: 15px;
-            margin: 20px 0;
-            border-radius: 0 8px 8px 0;
-        }
-
         .book-info {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -112,6 +104,36 @@
             color: #2d3748;
             font-size: 16px;
             font-weight: 500;
+        }
+
+        .price-section {
+            background: #ebf8ff;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 25px 0;
+            text-align: center;
+        }
+
+        .original-price {
+            color: #718096;
+            text-decoration: line-through;
+            font-size: 16px;
+        }
+
+        .current-price {
+            color: #e53e3e;
+            font-size: 36px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .discount-tag {
+            background: #e53e3e;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+            margin-left: 10px;
         }
 
         .buy-button {
@@ -152,36 +174,6 @@
             color: #38a169;
             font-weight: bold;
             margin-right: 10px;
-        }
-        
-        .price-section {
-            background: #ebf8ff;
-            padding: 20px;
-            border-radius: 10px;
-            margin: 25px 0;
-            text-align: center;
-        }
-
-        .original-price {
-            color: #718096;
-            text-decoration: line-through;
-            font-size: 16px;
-        }
-
-        .current-price {
-            color: #e53e3e;
-            font-size: 36px;
-            font-weight: bold;
-            margin: 10px 0;
-        }
-
-        .discount-tag {
-            background: #e53e3e;
-            color: white;
-            padding: 3px 8px;
-            border-radius: 4px;
-            font-size: 14px;
-            margin-left: 10px;
         }
 
         .related-books {
@@ -238,6 +230,7 @@
             cursor: pointer;
             font-size: 14px;
             transition: background-color 0.3s;
+            margin-left: 10px;
         }
 
         .retry-button:hover {
@@ -255,7 +248,6 @@
             padding: 20px;
         }
 
-        /* 移动端响应式样式 */
         @media screen and (max-width: 768px) {
             .header-container {
                 padding: 0 15px;
@@ -368,84 +360,64 @@
         // 标题缓存
         const titleCache = new Map();
 
-        async function loadRandomBooks() {
-            const relatedList = document.getElementById('relatedList');
-            relatedList.innerHTML = '<div class="loading-text">正在加载推荐书籍...</div>';
+        // 解析sitemap中的URL
+        async function parseSitemapUrls(xmlText) {
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
             
-            try {
-                // 获取sitemap.xml
-                const response = await fetch('/sitemap.xml');
-                if (!response.ok) {
-                    throw new Error('获取sitemap失败');
-                }
+            return Array.from(xmlDoc.getElementsByTagName('url')).map(urlNode => {
+                const loc = urlNode.getElementsByTagName('loc')[0]?.textContent || '';
+                const lastmod = urlNode.getElementsByTagName('lastmod')[0]?.textContent || '';
                 
-                const text = await response.text();
-                const parser = new DOMParser();
-                const xmlDoc = parser.parseFromString(text, 'text/xml');
-                
-                // 获取所有url节点并过滤
-                const currentPath = window.location.pathname;
-                const validUrls = Array.from(xmlDoc.getElementsByTagName('url'))
-                    .filter(url => {
-                        const loc = url.getElementsByTagName('loc')[0].textContent;
-                        return loc.endsWith('.html') && !loc.includes(currentPath);
-                    });
-
-                if (validUrls.length === 0) {
-                    throw new Error('没有找到合适的推荐书籍');
-                }
-
-                // 随机选择书籍
-                const selectedUrls = getRandomItems(validUrls, 9);
-                
-                // 显示加载占位符
-                relatedList.innerHTML = selectedUrls.map(() => 
-                    '<div class="related-item loading">正在加载...</div>'
-                ).join('');
-
-                // 并行获取所有书籍信息
-                await Promise.all(selectedUrls.map((url, index) => 
-                    loadBookInfo(url, index, relatedList)
-                ));
-
-            } catch (error) {
-                console.error('加载推荐书籍失败:', error);
-                relatedList.innerHTML = `
-                    <div class="loading-text">
-                        加载推荐书籍失败 
-                        <button onclick="loadRandomBooks()" class="retry-button">重试</button>
-                    </div>`;
-            }
+                return {
+                    url: loc,
+                    lastmod: lastmod,
+                    id: loc.split('/').pop()?.replace(/\D/g, '') // 提取数字ID
+                };
+            });
         }
 
-        // 获取随机项目的辅助函数
+        // 获取随机项目
         function getRandomItems(array, count) {
             const shuffled = [...array].sort(() => 0.5 - Math.random());
             return shuffled.slice(0, Math.min(count, array.length));
         }
 
-        // 加载单本书籍信息
+        // 加载书籍信息
         async function loadBookInfo(url, index, relatedList) {
             try {
-                const loc = url.getElementsByTagName('loc')[0].textContent;
-                
                 // 优先使用缓存
-                let title = titleCache.get(loc);
+                let title = titleCache.get(url);
                 
                 if (!title) {
-                    // 使用更轻量的方式获取标题
-                    const response = await fetch(loc, {
+                    // 尝试使用HEAD请求
+                    const response = await fetch(url, {
                         method: 'HEAD'
                     });
-                    title = response.headers.get('X-Page-Title') || await fetchPageTitle(loc);
-                    titleCache.set(loc, title);
+                    
+                    title = response.headers.get('X-Page-Title');
+                    
+                    // 如果HEAD请求没有返回标题，则使用完整请求
+                    if (!title) {
+                        const fullResponse = await fetch(url);
+                        const html = await fullResponse.text();
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(html, 'text/html');
+                        const titleElement = doc.querySelector('.book-title');
+                        title = titleElement ? titleElement.textContent.replace(' pdf', '') : '';
+                    }
+                    
+                    // 存入缓存
+                    if (title) {
+                        titleCache.set(url, title);
+                    }
                 }
 
                 // 更新DOM
                 const items = relatedList.getElementsByClassName('related-item');
                 if (items[index]) {
                     items[index].outerHTML = `
-                        <a href="${loc}" class="related-item">
+                        <a href="${url}" class="related-item" title="${title || '未知标题'}">
                             ${title || '未知标题'}
                         </a>`;
                 }
@@ -461,17 +433,46 @@
             }
         }
 
-        // 从HTML内容中提取标题的备用方法
-        async function fetchPageTitle(url) {
+        // 加载随机书籍
+        async function loadRandomBooks() {
+            const relatedList = document.getElementById('relatedList');
+            relatedList.innerHTML = '<div class="loading-text">正在加载推荐书籍...</div>';
+            
             try {
-                const response = await fetch(url);
-                const html = await response.text();
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-                const titleElement = doc.querySelector('.book-title');
-                return titleElement ? titleElement.textContent.replace(' pdf', '') : '';
-            } catch {
-                return '';
+                const response = await fetch('/sitemap.xml');
+                if (!response.ok) throw new Error('获取sitemap失败');
+                
+                const text = await response.text();
+                const urls = await parseSitemapUrls(text);
+                
+                // 过滤掉当前页面
+                const currentId = window.location.pathname.split('/').pop()?.replace(/\D/g, '');
+                const validUrls = urls.filter(item => item.id !== currentId);
+                
+                if (validUrls.length === 0) {
+                    throw new Error('没有找到合适的推荐书籍');
+                }
+                
+                // 随机选择9个URL
+                const selectedUrls = getRandomItems(validUrls, 9);
+                
+                // 显示加载占位符
+                relatedList.innerHTML = selectedUrls.map(() => 
+                    '<div class="related-item loading">正在加载...</div>'
+                ).join('');
+
+                // 并行加载所有书籍信息
+                await Promise.all(selectedUrls.map((item, index) => 
+                    loadBookInfo(item.url, index, relatedList)
+                ));
+                
+            } catch (error) {
+                console.error('加载推荐书籍失败:', error);
+                relatedList.innerHTML = `
+                    <div class="loading-text">
+                        加载推荐书籍失败 
+                        <button onclick="loadRandomBooks()" class="retry-button">重试</button>
+                    </div>`;
             }
         }
 
