@@ -360,7 +360,7 @@
             const doc = parser.parseFromString(html, 'text/html');
             const titleElement = doc.querySelector('.book-title');
             if (titleElement) {
-                return titleElement.textContent.replace(' pdf 下载', '');
+                return titleElement.textContent.replace(' pdf', '');
             }
             return '';
         }
