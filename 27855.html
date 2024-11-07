@@ -1,3 +1,4 @@
+@ -1,458 +1,458 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -405,7 +406,7 @@
                 // 过滤掉当前页面和非html页面
                 const validUrls = urls.filter(url => {
                     const loc = url.getElementsByTagName('loc')[0].textContent;
-                    return loc.endsWith('.html') && !loc.includes(currentPath);
+					return !loc.includes(currentPath);  // 只排除当前页面
                 });
 
                 // 随机选择10个url
