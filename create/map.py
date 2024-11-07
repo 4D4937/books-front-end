@@ -12,8 +12,8 @@ def generate_sitemap(base_url):
         if file.endswith('.html'):
             # 使用 os.path.join 构建完整路径
             full_path = os.path.join(parent_dir, file)
-            # URL 路径就是文件名
-            url_path = file
+            # URL 路径去掉 .html 后缀
+            url_path = file[:-5]  # 截取字符串，去掉最后5个字符('.html')
             html_files.append((full_path, url_path))
 
     # 生成sitemap XML
