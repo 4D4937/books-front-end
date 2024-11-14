@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="方和谦论著集，作者：权红主编，出版社：北京：科学出版社，出版时间：2014，ISBN：9787030439581，全书285页。提供PDF电子书下载，支持文字检索，阅读体验好。">
+    <title>方和谦论著集 pdf</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            line-height: 1.6;
+            background-color: #f5f7fa;
+            color: #2c3e50;
+        }
+
+        .header {
+            background: #ffffff;
+            border-bottom: 1px solid #eaeaea;
+            padding: 12px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 20px;
+            font-weight: 500;
+            color: #333;
+            text-decoration: none;
+        }
+
+        .nav-menu {
+            display: flex;
+            gap: 20px;
+            list-style: none;
+        }
+
+        .nav-item a {
+            color: #666;
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s ease;
+        }
+
+        .nav-item a:hover {
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .book-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+        }
+
+        .book-title {
+            font-size: 32px;
+            color: #1a202c;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        .highlight-box {
+            background: #f8f9fa;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .book-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 25px 0;
+        }
+
+        .info-item {
+            padding: 10px;
+        }
+
+        .info-label {
+            color: #718096;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            color: #2d3748;
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .buy-button {
+            display: block;
+            width: 100%;
+            max-width: 300px;
+            margin: 20px auto;
+            padding: 15px 30px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .buy-button:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+        }
+
+        .features {
+            margin-top: 30px;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            color: #4a5568;
+        }
+
+        .feature-item:before {
+            content: "✓";
+            color: #38a169;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        .price-section {
+            background: #ebf8ff;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 25px 0;
+            text-align: center;
+        }
+
+        .original-price {
+            color: #718096;
+            text-decoration: line-through;
+            font-size: 16px;
+        }
+
+        .current-price {
+            color: #e53e3e;
+            font-size: 36px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .discount-tag {
+            background: #e53e3e;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+            margin-left: 10px;
+        }
+
+        .related-books {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #eaeaea;
+        }
+
+        .related-title {
+            font-size: 20px;
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+
+        .related-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 12px;
+        }
+
+        .related-item {
+            color: #3498db;
+            text-decoration: none;
+            padding: 10px 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            display: block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .related-item:hover {
+            background: #e9ecef;
+            transform: translateY(-2px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .related-item.loading {
+            color: #666;
+            background: #f0f0f0;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+
+        .loading-text {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+        }
+
+        /* 移动端响应式样式 */
+        @media screen and (max-width: 768px) {
+            .header-container {
+                padding: 0 15px;
+            }
+
+            .book-title {
+                font-size: 24px;
+            }
+
+            .container {
+                padding: 0 15px;
+                margin: 20px auto;
+            }
+
+            .book-card {
+                padding: 20px;
+            }
+
+            .current-price {
+                font-size: 28px;
+            }
+
+            .book-info {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .nav-menu {
+                gap: 15px;
+            }
+
+            .buy-button {
+                padding: 12px 24px;
+                font-size: 16px;
+            }
+
+            .related-list {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-container">
+            <a href="/" class="logo">LiberPDF</a>
+            <nav>
+                <ul class="nav-menu">
+                    <li class="nav-item"><a href="/">首页</a></li>
+                    <li class="nav-item"><a href="/books">分类</a></li>
+                    <li class="nav-item"><a href="/about">关于</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="book-card">
+            <h1 class="book-title">方和谦论著集 pdf</h1>
+
+            <div class="book-info">
+                <div class="info-item">
+                    <div class="info-label">作者</div>
+                    <div class="info-value">权红主编</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">出版社</div>
+                    <div class="info-value">北京：科学出版社</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">出版时间</div>
+                    <div class="info-value">2014</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">ISBN</div>
+                    <div class="info-value">9787030439581</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">页数</div>
+                    <div class="info-value">285页</div>
+                </div>
+            </div>
+            
+            <div class="price-section">
+                <div class="original-price">原价: ¥29.9</div>
+                <div class="current-price">
+                    ¥9.9
+                    <span class="discount-tag">限时特惠</span>
+                </div>
+            </div>
+
+            <button class="buy-button" onclick="window.location.href='buy.html'">立即下载PDF版本</button>
+
+            <div class="features">
+                <div class="feature-item">支持文字复制和检索</div>
+                <div class="feature-item">支持各种设备阅读</div>
+                <div class="feature-item">高清原版扫描</div>
+            </div>
+
+            <div class="related-books">
+                <h2 class="related-title">相关书籍推荐</h2>
+                <div id="relatedList" class="related-list">
+                    <div class="loading-text">正在加载推荐书籍...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 标题缓存
+        const titleCache = new Map();
+
+        // 从HTML内容中提取标题
+        function extractTitle(html) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const titleElement = doc.querySelector('.book-title');
+            if (titleElement) {
+                return titleElement.textContent.replace(' pdf', '');
+            }
+            return '';
+        }
+
+        // 获取页面内容和标题
+        async function fetchPageTitle(url) {
+            // 检查缓存
+            if (titleCache.has(url)) {
+                return titleCache.get(url);
+            }
+
+            try {
+                const response = await fetch(url);
+                const html = await response.text();
+                const title = extractTitle(html);
+                
+                // 存入缓存
+                titleCache.set(url, title);
+                
+                return title;
+            } catch (error) {
+                console.error('获取页面标题失败:', url, error);
+                return '';
+            }
+        }
+
+        async function loadRandomBooks() {
+            const relatedList = document.getElementById('relatedList');
+            relatedList.innerHTML = '<div class="loading-text">正在加载推荐书籍...</div>';
+            
+            try {
+                // 获取sitemap.xml
+                const response = await fetch('/sitemap.xml');
+                const text = await response.text();
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(text, 'text/xml');
+                
+                // 获取所有url节点
+                const urls = Array.from(xmlDoc.getElementsByTagName('url'));
+                const currentPath = window.location.pathname;
+                
+                // 过滤掉当前页面和非html页面
+                const validUrls = urls.filter(url => {
+                    const loc = url.getElementsByTagName('loc')[0].textContent;
+					return !loc.includes(currentPath);  // 只排除当前页面
+                });
+
+                // 随机选择10个url
+                const randomUrls = [];
+                const urlCount = validUrls.length;
+                while (randomUrls.length < 9 && randomUrls.length < urlCount) {
+                    const randomIndex = Math.floor(Math.random() * validUrls.length);
+                    const url = validUrls[randomIndex];
+                    if (!randomUrls.includes(url)) {
+                        randomUrls.push(url);
+                        validUrls.splice(randomIndex, 1);
+                    }
+                }
+
+                // 显示加载中的占位符
+                relatedList.innerHTML = randomUrls.map(() => 
+                    '<div class="related-item loading">正在加载...</div>'
+                ).join('');
+
+                // 获取所有选中页面的标题
+                const bookPromises = randomUrls.map(async (url, index) => {
+                    const loc = url.getElementsByTagName('loc')[0].textContent;
+                    const title = await fetchPageTitle(loc);
+                    
+                    // 更新对应的占位符
+                    const items = relatedList.getElementsByClassName('related-item');
+                    if (items[index]) {
+                        if (title) {
+                            items[index].outerHTML = `<a href="${loc}" class="related-item">${title}</a>`;
+                        } else {
+                            items[index].outerHTML = `<a href="${loc}" class="related-item">未知标题</a>`;
+                        }
+                    }
+                });
+
+                // 等待所有标题加载完成
+                await Promise.all(bookPromises);
+
+            } catch (error) {
+                console.error('加载推荐书籍失败:', error);
+                relatedList.innerHTML = '<div class="loading-text">加载推荐书籍失败，请刷新页面重试</div>';
+            }
+        }
+
+        // 页面加载时加载随机书籍
+        loadRandomBooks();
+    </script>
+</body>
+</html>
