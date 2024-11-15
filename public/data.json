@@ -1,0 +1,26 @@
+{
+  "book1": {
+    "title": "JavaScript高级程序设计",
+    "author": "Nicholas C. Zakas",
+    "publisher": "人民邮电出版社",
+    "publish_date": "2024-01",
+    "isbn": "9787115545381",
+    "pages": 880
+  },
+  "book2": {
+    "title": "深入理解计算机系统",
+    "author": "Randal E. Bryant",
+    "publisher": "机械工业出版社",
+    "publish_date": "2024-02",
+    "isbn": "9787111544937",
+    "pages": 756
+  },
+  "book3": {
+    "title": "算法导论",
+    "author": "Thomas H. Cormen",
+    "publisher": "机械工业出版社",
+    "publish_date": "2024-03",
+    "isbn": "9787111407010",
+    "pages": 680
+  }
+}
