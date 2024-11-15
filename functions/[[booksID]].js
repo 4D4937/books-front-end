@@ -1,24 +1,79 @@
 export async function onRequest(context) {
   const { request } = context;
   const url = new URL(request.url);
-  const bookId = url.pathname.slice(1); // 移除开头的 '/'
+  const bookId = url.pathname.slice(1);
   
-  if (!bookId) {
-    return new Response('首页', { status: 200 }); // 可以在这里处理首页
+  try {
+    // 如果是根路径,显示首页
+    if (!bookId) {
+      return await handleHome();
+    }
+    
+    // 获取数据文件
+    const books = await loadBooks(url.origin);
+    
+    // 查找对应的书籍
+    const book = books[bookId];
+    if (!book) {
+      return new Response('未找到该书籍', { 
+        status: 404,
+        headers: {
+          'content-type': 'text/html;charset=UTF-8',
+        }
+      });
+    }
+    
+    // 生成HTML
+    const html = generateHTML(book);
+    
+    return new Response(html, {
+      headers: {
+        'content-type': 'text/html;charset=UTF-8',
+      },
+    });
+    
+  } catch (error) {
+    console.error('Error:', error);
+    return new Response(`服务器错误: ${error.message}`, { 
+      status: 500,
+      headers: {
+        'content-type': 'text/html;charset=UTF-8',
+      }
+    });
   }
-  
-  // 读取数据文件
-  const response = await fetch('https://liberpdf.top/data.json');
-  const books = await response.json();
-  
-  // 查找对应的书籍
-  const book = books[bookId];
-  if (!book) {
-    return new Response('书籍未找到', { status: 404 });
+}
+
+async function loadBooks(origin) {
+  const response = await fetch(new URL('/data.json', origin));
+  if (!response.ok) {
+    throw new Error('Failed to load books data');
   }
-  
-  // 使用模板生成HTML
-  const html = generateHTML(book);
+  return response.json();
+}
+
+async function handleHome() {
+  const html = `
+    <!DOCTYPE html>
+    <html lang="zh-CN">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>电子书城</title>
+      <link rel="stylesheet" href="/css/styles.css">
+    </head>
+    <body>
+      <site-header></site-header>
+      <div class="container">
+        <h1>欢迎访问电子书城</h1>
+        <div id="bookList" class="book-grid">
+          正在加载书籍列表...
+        </div>
+      </div>
+      <script type="module" src="/js/header.js"></script>
+      <script src="/js/book-list.js"></script>
+    </body>
+    </html>
+  `;
   
   return new Response(html, {
     headers: {
@@ -28,7 +83,8 @@ export async function onRequest(context) {
 }
 
 function generateHTML(book) {
-  return `<!DOCTYPE html>
+  try {
+    return `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -96,4 +152,8 @@ function generateHTML(book) {
     <script src="/js/related-books.js"></script>
 </body>
 </html>`;
+  } catch (error) {
+    console.error('Template Error:', error);
+    throw new Error('模板渲染失败');
+  }
 }
