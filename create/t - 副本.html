@@ -184,6 +184,63 @@
             margin-left: 10px;
         }
 
+        .related-books {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #eaeaea;
+        }
+
+        .related-title {
+            font-size: 20px;
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+
+        .related-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 12px;
+        }
+
+        .related-item {
+            color: #3498db;
+            text-decoration: none;
+            padding: 10px 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            display: block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .related-item:hover {
+            background: #e9ecef;
+            transform: translateY(-2px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .related-item.loading {
+            color: #666;
+            background: #f0f0f0;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+
+        .loading-text {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+        }
+
         /* 移动端响应式样式 */
         @media screen and (max-width: 768px) {
             .header-container {
@@ -220,6 +277,10 @@
                 padding: 12px 24px;
                 font-size: 16px;
             }
+
+            .related-list {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -239,7 +300,7 @@
 
     <div class="container">
         <div class="book-card">
-            <h1 class="book-title">${title} pdf 下载</h1>
+            <h1 class="book-title">${title} pdf</h1>
 
             <div class="book-info">
                 <div class="info-item">
@@ -279,7 +340,118 @@
                 <div class="feature-item">支持各种设备阅读</div>
                 <div class="feature-item">高清原版扫描</div>
             </div>
+
+            <div class="related-books">
+                <h2 class="related-title">相关书籍推荐</h2>
+                <div id="relatedList" class="related-list">
+                    <div class="loading-text">正在加载推荐书籍...</div>
+                </div>
+            </div>
         </div>
     </div>
+
+    <script>
+        // 标题缓存
+        const titleCache = new Map();
+
+        // 从HTML内容中提取标题
+        function extractTitle(html) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const titleElement = doc.querySelector('.book-title');
+            if (titleElement) {
+                return titleElement.textContent.replace(' pdf', '');
+            }
+            return '';
+        }
+
+        // 获取页面内容和标题
+        async function fetchPageTitle(url) {
+            // 检查缓存
+            if (titleCache.has(url)) {
+                return titleCache.get(url);
+            }
+
+            try {
+                const response = await fetch(url);
+                const html = await response.text();
+                const title = extractTitle(html);
+                
+                // 存入缓存
+                titleCache.set(url, title);
+                
+                return title;
+            } catch (error) {
+                console.error('获取页面标题失败:', url, error);
+                return '';
+            }
+        }
+
+        async function loadRandomBooks() {
+            const relatedList = document.getElementById('relatedList');
+            relatedList.innerHTML = '<div class="loading-text">正在加载推荐书籍...</div>';
+            
+            try {
+                // 获取sitemap.xml
+                const response = await fetch('/sitemap.xml');
+                const text = await response.text();
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(text, 'text/xml');
+                
+                // 获取所有url节点
+                const urls = Array.from(xmlDoc.getElementsByTagName('url'));
+                const currentPath = window.location.pathname;
+                
+                // 过滤掉当前页面和非html页面
+                const validUrls = urls.filter(url => {
+                    const loc = url.getElementsByTagName('loc')[0].textContent;
+					return !loc.includes(currentPath);  // 只排除当前页面
+                });
+
+                // 随机选择10个url
+                const randomUrls = [];
+                const urlCount = validUrls.length;
+                while (randomUrls.length < 9 && randomUrls.length < urlCount) {
+                    const randomIndex = Math.floor(Math.random() * validUrls.length);
+                    const url = validUrls[randomIndex];
+                    if (!randomUrls.includes(url)) {
+                        randomUrls.push(url);
+                        validUrls.splice(randomIndex, 1);
+                    }
+                }
+
+                // 显示加载中的占位符
+                relatedList.innerHTML = randomUrls.map(() => 
+                    '<div class="related-item loading">正在加载...</div>'
+                ).join('');
+
+                // 获取所有选中页面的标题
+                const bookPromises = randomUrls.map(async (url, index) => {
+                    const loc = url.getElementsByTagName('loc')[0].textContent;
+                    const title = await fetchPageTitle(loc);
+                    
+                    // 更新对应的占位符
+                    const items = relatedList.getElementsByClassName('related-item');
+                    if (items[index]) {
+                        if (title) {
+                            items[index].outerHTML = `<a href="${loc}" class="related-item">${title}</a>`;
+                        } else {
+                            items[index].outerHTML = `<a href="${loc}" class="related-item">未知标题</a>`;
+                        }
+                    }
+                });
+
+                // 等待所有标题加载完成
+                await Promise.all(bookPromises);
+
+            } catch (error) {
+                console.error('加载推荐书籍失败:', error);
+                relatedList.innerHTML = '<div class="loading-text">加载推荐书籍失败，请刷新页面重试</div>';
+            }
+        }
+
+        // 页面加载时加载随机书籍
+        loadRandomBooks();
+    </script>
 </body>
 </html>
