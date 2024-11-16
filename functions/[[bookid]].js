@@ -3,8 +3,9 @@ export async function onRequest(context) {
   const url = new URL(request.url);
   const path = url.pathname;
   
-  // 提取 bookId
+  // 提取 bookId 并构造完整的键名
   const bookId = path.slice(1); // 移除开头的 /
+  const bookKey = `book:${bookId}`; // 添加 'book:' 前缀
   
   if (!bookId) {
     return new Response("请提供书籍ID", { status: 400 });
@@ -12,7 +13,7 @@ export async function onRequest(context) {
 
   try {
     // 从 KV 读取数据
-    const bookData = await env.BOOKS_KV.get(bookId);
+    const bookData = await env.BOOKS_KV.get(bookKey);
     if (!bookData) {
       return new Response("未找到该书籍", { status: 404 });
     }
@@ -20,7 +21,8 @@ export async function onRequest(context) {
     const bookInfo = JSON.parse(bookData);
     
     // 读取 HTML 模板
-    const html = await fetch(new URL('/template.html', request.url)).then(res => res.text());
+    const templateResponse = await fetch(new URL('/template.html', request.url));
+    const html = await templateResponse.text();
     
     // 替换模板变量
     const renderedHtml = html
