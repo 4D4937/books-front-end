@@ -236,7 +236,7 @@ export async function onRequest(context) {
 async function handleRandomBooks(env) {
   try {
     const totalBooks = parseInt(env.TOTAL_BOOKS_COUNT);
-    console.log('总书籍数:', totalBooks); // 调试日志1
+    console.log('总书籍数:', totalBooks);
 
     if (!totalBooks || isNaN(totalBooks)) {
       throw new Error('书籍总数配置无效');
@@ -244,36 +244,35 @@ async function handleRandomBooks(env) {
 
     const targetCount = 10;
     
-    // 生成随机索引数组并打印
-    const randomIndexes = Array.from({ length: totalBooks }, (_, i) => i + 1)
+    // 先获取所有的 keys
+    const { keys } = await env.BOOKS_KV.list();
+    console.log('获取到的总键数:', keys.length);
+
+    // 随机选择 10 个 key
+    const randomKeys = keys
       .sort(() => Math.random() - 0.5)
       .slice(0, targetCount);
-    console.log('随机选择的索引:', randomIndexes); // 调试日志2
+    
+    console.log('随机选择的keys:', randomKeys.map(k => k.name));
 
-    // 获取随机选中的书籍数据
     const randomBooks = await Promise.all(
-      randomIndexes.map(async index => {
+      randomKeys.map(async key => {
         try {
-          const key = `book:${index}`;
-          console.log('正在获取书籍:', key); // 调试日志3
-          const bookData = await env.BOOKS_KV.get(key);
-          
+          const bookData = await env.BOOKS_KV.get(key.name);
           if (!bookData) {
-            console.log('未找到书籍数据:', key); // 调试日志4
+            console.log(`未找到书籍数据: ${key.name}`);
             return null;
           }
           
           const parsed = JSON.parse(bookData);
-          console.log('成功获取书籍:', key, parsed.title); // 调试日志5
+          console.log(`成功获取书籍: ${key.name}, 标题: ${parsed.title}`);
           return parsed;
         } catch (err) {
-          console.error(`处理书籍数据失败: ${key}`, err);
+          console.error(`处理书籍数据失败: ${key.name}`, err.message);
           return null;
         }
       })
     );
-
-    console.log('获取到的书籍数据:', randomBooks); // 调试日志6
 
     const validBooks = randomBooks
       .filter(Boolean)
@@ -281,8 +280,6 @@ async function handleRandomBooks(env) {
         id: book.id,
         title: book.title
       }));
-
-    console.log('有效的书籍数据:', validBooks); // 调试日志7
 
     if (!validBooks.length) {
       throw new Error('没有有效的书籍数据');
@@ -312,7 +309,6 @@ async function handleRandomBooks(env) {
     );
   }
 }
-
 // 处理书籍详情请求
 async function handleBookDetail(path, env) {
   const bookId = path.slice(1);
