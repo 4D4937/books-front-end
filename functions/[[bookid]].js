@@ -190,31 +190,67 @@ export async function onRequest(context) {
 // 处理随机书籍请求
 async function handleRandomBooks(env) {
   try {
+    // 检查环境变量
     const totalBooks = parseInt(env.TOTAL_BOOKS_COUNT);
+    if (!totalBooks || isNaN(totalBooks)) {
+      console.error('TOTAL_BOOKS_COUNT 无效:', env.TOTAL_BOOKS_COUNT);
+      throw new Error('书籍总数配置无效');
+    }
+
     const limit = 20;
     const targetCount = 10;
-    const startPosition = Math.floor(Math.random() * (totalBooks - limit));
+    const startPosition = Math.floor(Math.random() * Math.max(totalBooks - limit, 0));
     
-    const { keys } = await env.BOOKS_KV.list({
+    // 添加日志
+    console.log(`尝试获取书籍, 起始位置: ${startPosition}, 限制: ${limit}`);
+    
+    const listResult = await env.BOOKS_KV.list({
       limit,
       cursor: startPosition.toString()
     });
+    
+    if (!listResult || !listResult.keys || !listResult.keys.length) {
+      console.error('未能获取到书籍列表');
+      throw new Error('书籍列表为空');
+    }
+
+    // 添加日志
+    console.log(`成功获取到 ${listResult.keys.length} 本书`);
 
     const books = await Promise.all(
-      keys
+      listResult.keys
         .sort(() => Math.random() - 0.5)
         .slice(0, targetCount)
         .map(async key => {
-          const bookData = await env.BOOKS_KV.get(key.name);
-          return bookData ? JSON.parse(bookData) : null;
+          try {
+            const bookData = await env.BOOKS_KV.get(key.name);
+            if (!bookData) {
+              console.warn(`书籍数据为空: ${key.name}`);
+              return null;
+            }
+            return JSON.parse(bookData);
+          } catch (err) {
+            console.error(`处理书籍数据失败: ${key.name}`, err);
+            return null;
+          }
         })
     );
 
+    const validBooks = books.filter(Boolean).map(book => ({
+      id: book.id,
+      title: book.title
+    }));
+
+    // 检查最终结果
+    if (!validBooks.length) {
+      throw new Error('没有有效的书籍数据');
+    }
+
+    // 添加日志
+    console.log(`成功处理 ${validBooks.length} 本书`);
+
     return new Response(
-      JSON.stringify(books.filter(Boolean).map(book => ({
-        id: book.id,
-        title: book.title
-      }))), 
+      JSON.stringify(validBooks), 
       {
         headers: {
           'content-type': 'application/json;charset=UTF-8',
@@ -223,8 +259,13 @@ async function handleRandomBooks(env) {
       }
     );
   } catch (err) {
+    console.error('获取随机书籍失败:', err);
     return new Response(
-      JSON.stringify({ error: '获取随机书籍失败' }), 
+      JSON.stringify({ 
+        error: '获取随机书籍失败',
+        message: err.message,
+        timestamp: new Date().toISOString()
+      }), 
       {
         status: 500,
         headers: { 'content-type': 'application/json;charset=UTF-8' }
