@@ -74,83 +74,23 @@ customElements.define('site-header', Header);
 // 相关书籍加载的 JS
 const RELATED_BOOKS_SCRIPT = `
 <script>
-const titleCache = new Map();
-
-function extractTitle(html) {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-    const titleElement = doc.querySelector('.book-title');
-    if (titleElement) {
-        return titleElement.textContent.replace(' pdf', '');
-    }
-    return '';
-}
-
-async function fetchPageTitle(url) {
-    if (titleCache.has(url)) {
-        return titleCache.get(url);
-    }
-
-    try {
-        const response = await fetch(url);
-        const html = await response.text();
-        const title = extractTitle(html);
-        titleCache.set(url, title);
-        return title;
-    } catch (error) {
-        console.error('获取页面标题失败:', url, error);
-        return '';
-    }
-}
-
 async function loadRandomBooks() {
     const relatedList = document.getElementById('relatedList');
     relatedList.innerHTML = '<div class="loading-text">正在加载推荐书籍...</div>';
     
     try {
-        const response = await fetch('/sitemap.xml');
-        const text = await response.text();
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(text, 'text/xml');
-        
-        const urls = Array.from(xmlDoc.getElementsByTagName('url'));
-        const currentPath = window.location.pathname;
-        
-        const validUrls = urls.filter(url => {
-            const loc = url.getElementsByTagName('loc')[0].textContent;
-            return !loc.includes(currentPath);
-        });
-
-        const randomUrls = [];
-        const urlCount = validUrls.length;
-        while (randomUrls.length < 9 && randomUrls.length < urlCount) {
-            const randomIndex = Math.floor(Math.random() * validUrls.length);
-            const url = validUrls[randomIndex];
-            if (!randomUrls.includes(url)) {
-                randomUrls.push(url);
-                validUrls.splice(randomIndex, 1);
-            }
+        // 从 API 获取随机书籍
+        const response = await fetch('/api/random-books');
+        if (!response.ok) {
+            throw new Error('获取随机书籍失败');
         }
-
-        relatedList.innerHTML = randomUrls.map(() => 
-            '<div class="related-item loading">正在加载...</div>'
+        
+        const books = await response.json();
+        
+        // 渲染书籍列表
+        relatedList.innerHTML = books.map(book => 
+            `<a href="/${book.id}" class="related-item">${book.title}</a>`
         ).join('');
-
-        const bookPromises = randomUrls.map(async (url, index) => {
-            const loc = url.getElementsByTagName('loc')[0].textContent;
-            const title = await fetchPageTitle(loc);
-            
-            const items = relatedList.getElementsByClassName('related-item');
-            if (items[index]) {
-                if (title) {
-                    items[index].outerHTML = \`<a href="\${loc}" class="related-item">\${title}</a>\`;
-                } else {
-                    items[index].outerHTML = \`<a href="\${loc}" class="related-item">未知标题</a>\`;
-                }
-            }
-        });
-
-        await Promise.all(bookPromises);
 
     } catch (error) {
         console.error('加载推荐书籍失败:', error);
@@ -241,7 +181,47 @@ export async function onRequest(context) {
   if (path.endsWith('.html') || path.endsWith('.css') || path.endsWith('.js')) {
     return;
   }
-  
+    // 处理随机书籍 API 请求
+  if (path === '/api/random-books') {
+    try {
+      // 获取所有键
+      const { keys } = await env.BOOKS_KV.list();
+      
+      // 随机选择10本书
+      const randomBooks = [];
+      const availableKeys = [...keys];
+      
+      while (randomBooks.length < 10 && availableKeys.length > 0) {
+        const randomIndex = Math.floor(Math.random() * availableKeys.length);
+        const key = availableKeys[randomIndex];
+        
+        // 获取书籍数据
+        const bookData = await env.BOOKS_KV.get(key.name);
+        if (bookData) {
+          const book = JSON.parse(bookData);
+          randomBooks.push({
+            id: book.id,
+            title: book.title
+          });
+        }
+        
+        // 从可用键列表中移除已选择的键
+        availableKeys.splice(randomIndex, 1);
+      }
+      
+      return new Response(JSON.stringify(randomBooks), {
+        headers: {
+          'content-type': 'application/json;charset=UTF-8',
+          'cache-control': 'public, max-age=300' // 缓存5分钟
+        }
+      });
+    } catch (err) {
+      return new Response(JSON.stringify({ error: '获取随机书籍失败' }), {
+        status: 500,
+        headers: { 'content-type': 'application/json;charset=UTF-8' }
+      });
+    }
+  }
   const bookId = path.slice(1);
   const bookKey = `book:${bookId}`;
   
