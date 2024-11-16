@@ -47,6 +47,120 @@ body { font-family: 'Microsoft YaHei', sans-serif; line-height: 1.6; background-
 }
 </style>`;
 
+// Header 组件的 JS
+const HEADER_SCRIPT = `
+<script>
+class Header extends HTMLElement {
+    connectedCallback() {
+        this.innerHTML = \`
+            <header class="header">
+                <div class="header-container">
+                    <a href="/" class="logo">LiberPDF</a>
+                    <nav>
+                        <ul class="nav-menu">
+                            <li class="nav-item"><a href="/">首页</a></li>
+                            <li class="nav-item"><a href="/books">分类</a></li>
+                            <li class="nav-item"><a href="/about">关于</a></li>
+                        </ul>
+                    </nav>
+                </div>
+            </header>
+        \`;
+    }
+}
+customElements.define('site-header', Header);
+</script>`;
+
+// 相关书籍加载的 JS
+const RELATED_BOOKS_SCRIPT = `
+<script>
+const titleCache = new Map();
+
+function extractTitle(html) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const titleElement = doc.querySelector('.book-title');
+    if (titleElement) {
+        return titleElement.textContent.replace(' pdf', '');
+    }
+    return '';
+}
+
+async function fetchPageTitle(url) {
+    if (titleCache.has(url)) {
+        return titleCache.get(url);
+    }
+
+    try {
+        const response = await fetch(url);
+        const html = await response.text();
+        const title = extractTitle(html);
+        titleCache.set(url, title);
+        return title;
+    } catch (error) {
+        console.error('获取页面标题失败:', url, error);
+        return '';
+    }
+}
+
+async function loadRandomBooks() {
+    const relatedList = document.getElementById('relatedList');
+    relatedList.innerHTML = '<div class="loading-text">正在加载推荐书籍...</div>';
+    
+    try {
+        const response = await fetch('/sitemap.xml');
+        const text = await response.text();
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(text, 'text/xml');
+        
+        const urls = Array.from(xmlDoc.getElementsByTagName('url'));
+        const currentPath = window.location.pathname;
+        
+        const validUrls = urls.filter(url => {
+            const loc = url.getElementsByTagName('loc')[0].textContent;
+            return !loc.includes(currentPath);
+        });
+
+        const randomUrls = [];
+        const urlCount = validUrls.length;
+        while (randomUrls.length < 9 && randomUrls.length < urlCount) {
+            const randomIndex = Math.floor(Math.random() * validUrls.length);
+            const url = validUrls[randomIndex];
+            if (!randomUrls.includes(url)) {
+                randomUrls.push(url);
+                validUrls.splice(randomIndex, 1);
+            }
+        }
+
+        relatedList.innerHTML = randomUrls.map(() => 
+            '<div class="related-item loading">正在加载...</div>'
+        ).join('');
+
+        const bookPromises = randomUrls.map(async (url, index) => {
+            const loc = url.getElementsByTagName('loc')[0].textContent;
+            const title = await fetchPageTitle(loc);
+            
+            const items = relatedList.getElementsByClassName('related-item');
+            if (items[index]) {
+                if (title) {
+                    items[index].outerHTML = \`<a href="\${loc}" class="related-item">\${title}</a>\`;
+                } else {
+                    items[index].outerHTML = \`<a href="\${loc}" class="related-item">未知标题</a>\`;
+                }
+            }
+        });
+
+        await Promise.all(bookPromises);
+
+    } catch (error) {
+        console.error('加载推荐书籍失败:', error);
+        relatedList.innerHTML = '<div class="loading-text">加载推荐书籍失败，请刷新页面重试</div>';
+    }
+}
+
+// 页面加载完成后执行
+document.addEventListener('DOMContentLoaded', loadRandomBooks);
+</script>`;
 
 // 内联模板
 const HTML_TEMPLATE = `<!DOCTYPE html>
@@ -57,6 +171,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     <meta name="description" content="\${title}，作者：\${author}，出版社：\${publisher}，出版时间：\${publish_date}，ISBN：\${isbn}，全书\${pages}页。提供PDF电子书下载，支持文字检索，阅读体验好。">
     <title>\${title} pdf</title>
     ${INLINE_STYLES}
+	${HEADER_SCRIPT}
 </head>
 <body>
     <site-header></site-header>
@@ -114,7 +229,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     </div>
 
     <script type="module" src="/js/header.js"></script>
-    <script src="/js/related-books.js"></script>
+    ${RELATED_BOOKS_SCRIPT}
 </body>
 </html>`;
 
