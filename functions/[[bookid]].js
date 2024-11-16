@@ -228,7 +228,6 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
         </div>
     </div>
 
-    <script type="module" src="/js/header.js"></script>
     ${RELATED_BOOKS_SCRIPT}
 </body>
 </html>`;
