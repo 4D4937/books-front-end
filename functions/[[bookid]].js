@@ -153,7 +153,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
                 </div>
             </div>
 
-            <button class="buy-button" onclick="window.location.href='buy.html'">立即下载PDF版本</button>
+            <button class="buy-button" onclick="window.location.href='buy'">立即下载PDF版本</button>
 
             <div class="features">
                 <div class="feature-item">支持文字复制和检索</div>
