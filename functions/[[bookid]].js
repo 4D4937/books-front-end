@@ -181,7 +181,19 @@ export async function onRequest(context) {
 
   // 静态文件处理
   if (path.match(/\.(html|css|js)$/)) {
-    return;
+    try {
+      // 从 env.ASSETS 获取静态文件
+      const asset = await env.ASSETS.fetch(request);
+      if (!asset) {
+        return new Response("文件未找到", { status: 404 });
+      }
+      return asset;
+    } catch (err) {
+      return new Response("获取静态文件失败", { 
+        status: 500,
+        headers: { 'content-type': 'text/plain;charset=UTF-8' }
+      });
+    }
   }
 
   // API 路由处理
