@@ -312,67 +312,6 @@ async function handleRandomBooks(env) {
     );
   }
 }
-  try {
-    const totalBooks = parseInt(env.TOTAL_BOOKS_COUNT);
-    if (!totalBooks || isNaN(totalBooks)) {
-      throw new Error('书籍总数配置无效');
-    }
-
-    const targetCount = 10;
-    
-    // 生成 1 到 totalBooks 范围内的随机数组
-    const randomIndexes = Array.from({ length: totalBooks }, (_, i) => i + 1)
-      .sort(() => Math.random() - 0.5)
-      .slice(0, targetCount);
-
-    // 获取随机选中的书籍数据
-    const randomBooks = await Promise.all(
-      randomIndexes.map(async index => {
-        try {
-          const bookData = await env.BOOKS_KV.get(`book:${index}`);
-          return bookData ? JSON.parse(bookData) : null;
-        } catch (err) {
-          console.error(`处理书籍数据失败: book:${index}`, err);
-          return null;
-        }
-      })
-    );
-
-    const validBooks = randomBooks
-      .filter(Boolean)
-      .map(book => ({
-        id: book.id,
-        title: book.title
-      }));
-
-    if (!validBooks.length) {
-      throw new Error('没有有效的书籍数据');
-    }
-
-    return new Response(
-      JSON.stringify(validBooks), 
-      {
-        headers: {
-          'content-type': 'application/json;charset=UTF-8',
-          'cache-control': 'public, max-age=300'
-        }
-      }
-    );
-  } catch (err) {
-    console.error('获取随机书籍失败:', err);
-    return new Response(
-      JSON.stringify({ 
-        error: '获取随机书籍失败',
-        message: err.message,
-        timestamp: new Date().toISOString()
-      }), 
-      {
-        status: 500,
-        headers: { 'content-type': 'application/json;charset=UTF-8' }
-      }
-    );
-  }
-}
 
 // 处理书籍详情请求
 async function handleBookDetail(path, env) {
