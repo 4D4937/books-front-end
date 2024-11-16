@@ -3,10 +3,13 @@ export async function onRequest(context) {
   const url = new URL(request.url);
   const path = url.pathname;
   
+  // 如果是请求静态文件，让 Pages 平台自动处理
+  if (path.endsWith('.html') || path.endsWith('.css') || path.endsWith('.js')) {
+    return; // 返回 undefined 让 Pages 平台处理静态文件
+  }
+  
   const bookId = path.slice(1);
   const bookKey = `book:${bookId}`;
-  console.log(`访问路径: ${path}`);
-  console.log(`查询键名: ${bookKey}`);
   
   if (!bookId) {
     return new Response("请提供书籍ID", { status: 400 });
@@ -14,18 +17,15 @@ export async function onRequest(context) {
 
   try {
     const bookData = await env.BOOKS_KV.get(bookKey);
-    console.log(`查询结果: ${bookData}`);
-
+    
     if (!bookData) {
       return new Response("未找到该书籍", { status: 404 });
     }
 
     const bookInfo = JSON.parse(bookData);
-    console.log('解析后的数据:', bookInfo);
-
-    // 读取模板文件
-    const templateUrl = new URL('/template.html', request.url);
-    const templateResponse = await fetch(templateUrl);
+    
+    // 直接从平台获取模板
+    const templateResponse = await fetch(new URL('/template.html', url.origin));
     
     if (!templateResponse.ok) {
       throw new Error(`无法加载模板文件: ${templateResponse.status}`);
@@ -39,10 +39,9 @@ export async function onRequest(context) {
       .replace(/\${author}/g, bookInfo.author || '')
       .replace(/\${publisher}/g, bookInfo.publisher || '')
       .replace(/\${publish_date}/g, bookInfo.publish_date || '')
-      .replace(/\${isbn}/g, bookInfo.ISBN || '') // 注意这里 ISBN 大写
+      .replace(/\${isbn}/g, bookInfo.ISBN || '')
       .replace(/\${pages}/g, bookInfo.page_count || '');
 
-    // 确保返回 Response 对象
     return new Response(renderedHtml, {
       headers: {
         'content-type': 'text/html;charset=UTF-8',
