@@ -71,34 +71,32 @@ class Header extends HTMLElement {
 customElements.define('site-header', Header);
 </script>`;
 
-const RELATED_BOOKS_SCRIPT = `
-<script>
-async function loadRandomBooks() {
-    const relatedList = document.getElementById('relatedList');
-    relatedList.innerHTML = '<div class="loading-text">正在加载推荐书籍...</div>';
-    
-    try {
-        const response = await fetch('/api/random-books');
-        if (!response.ok) {
-            throw new Error('获取随机书籍失败');
-        }
-        
-        const books = await response.json();
-        
-        // 修复：转义模板字符串
-        relatedList.innerHTML = books.map(book => 
-            '<a href="/' + book.id + '" class="related-item">' + book.title + '</a>'
-        ).join('');
-
-    } catch (error) {
-        console.error('加载推荐书籍失败:', error);
-        relatedList.innerHTML = '<div class="loading-text">加载推荐书籍失败，请刷新页面重试</div>';
-    }
-}
-
-// 页面加载完成后执行
-document.addEventListener('DOMContentLoaded', loadRandomBooks);
-</script>`;
+const RELATED_BOOKS_SCRIPT = [
+    '<script>',
+    'async function loadRandomBooks() {',
+    '    const relatedList = document.getElementById("relatedList");',
+    '    relatedList.innerHTML = \'<div class="loading-text">正在加载推荐书籍...</div>\';',
+    '    ',
+    '    try {',
+    '        const response = await fetch("/api/random-books");',
+    '        if (!response.ok) {',
+    '            throw new Error("获取随机书籍失败");',
+    '        }',
+    '        ',
+    '        const books = await response.json();',
+    '        ',
+    '        relatedList.innerHTML = books.map(book => ',
+    '            \'<a href="/\' + book.id + \'" class="related-item">\' + book.title + \'</a>\'',
+    '        ).join("");',
+    '    } catch (error) {',
+    '        console.error("加载推荐书籍失败:", error);',
+    '        relatedList.innerHTML = \'<div class="loading-text">加载推荐书籍失败，请刷新页面重试</div>\';',
+    '    }',
+    '}',
+    '',
+    'document.addEventListener("DOMContentLoaded", loadRandomBooks);',
+    '</script>'
+].join('\n');
 
 // 页面加载完成后执行
 document.addEventListener('DOMContentLoaded', loadRandomBooks);
