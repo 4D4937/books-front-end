@@ -175,23 +175,32 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
 </html>`;
 
 export async function onRequest(context) {
-  try {
-    // 如果请求的是 buy.html
-    if (context.request.url.endsWith('/buy.html')) {
-      // 从 public 目录读取 buy.html
-      const response = await context.env.ASSETS.fetch(new URL('/buy.html', context.request.url));
-      return response;
-    }
-    
-    // 对于其他请求，返回 404
-    return new Response('Not Found', { status: 404 });
-  } catch (err) {
-    // 返回错误响应
-    return new Response('Internal Server Error', {
-      status: 500,
-      statusText: err.message
-    });
-  }
+  const { request, env } = context;
+  const url = new URL(request.url);
+  const path = url.pathname;
+
+  // 静态文件处理
+	if (path.match(/\.(html|css|js)$/)) {
+	  try {
+		// 确保返回一个有效的 Response 对象
+		const response = await context.next();
+		if (response) {
+		  return response;
+		}
+		
+		// 如果找不到文件，返回 404
+		return new Response("文件未找到", { 
+		  status: 404,
+		  headers: { 'content-type': 'text/plain;charset=UTF-8' }
+		});
+	  } catch (err) {
+		console.error('静态文件处理错误:', err);
+		return new Response(`静态文件处理错误: ${err.message}`, { 
+		  status: 500,
+		  headers: { 'content-type': 'text/plain;charset=UTF-8' }
+		});
+	  }
+	}
 
   // API 路由处理
   if (path === '/api/random-books') {
