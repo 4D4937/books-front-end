@@ -89,7 +89,7 @@ async function loadRandomBooks() {
         
         // 渲染书籍列表
         relatedList.innerHTML = books.map(book => 
-            `<a href="/${book.id}" class="related-item">${book.title}</a>`
+            "<a href="/${book.id}" class="related-item">${book.title}</a>"
         ).join('');
 
     } catch (error) {
