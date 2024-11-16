@@ -169,98 +169,93 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
 </html>`;
 
 export async function onRequest(context) {
-	const { request, env } = context;
-	const url = new URL(request.url);
-	const path = url.pathname;
+  const { request, env } = context;
+  const url = new URL(request.url);
+  const path = url.pathname;
 
-	// 如果是请求静态文件，让 Pages 平台自动处理
-	if (path.endsWith('.html') || path.endsWith('.css') || path.endsWith('.js')) {
-	return;
-	}
+  // 静态文件处理
+  if (path.match(/\.(html|css|js)$/)) {
+    return;
+  }
 
-	if (path === '/api/random-books') {
-	  try {
-		const randomBooks = [];
-		const limit = 20; // 每次获取20个键
-		const targetCount = 10; // 目标书籍数量
-		
-		// 从环境变量获取总书籍数量
-		const totalBooks = parseInt(env.TOTAL_BOOKS_COUNT);
-		const startPosition = Math.floor(Math.random() * (totalBooks - limit));
-		
-		const { keys } = await env.BOOKS_KV.list({
-		  limit: limit,
-		  cursor: startPosition.toString()
-		});
-		
-		const shuffledKeys = keys.sort(() => Math.random() - 0.5);
-		
-		const promises = shuffledKeys.slice(0, targetCount).map(async key => {
-		  const bookData = await env.BOOKS_KV.get(key.name);
-		  if (bookData) {
-			const book = JSON.parse(bookData);
-			return {
-			  id: book.id,
-			  title: book.title
-			};
-		  }
-		});
-		
-		const books = await Promise.all(promises);
-		const validBooks = books.filter(book => book);
-		
-		return new Response(JSON.stringify(validBooks), {
-		  headers: {
-			'content-type': 'application/json;charset=UTF-8',
-			'cache-control': 'public, max-age=300'
-		  }
-		});
-	  } catch (err) {
-		return new Response(JSON.stringify({ error: '获取随机书籍失败' }), {
-		  status: 500,
-		  headers: { 'content-type': 'application/json;charset=UTF-8' }
-		});
-	  }
-	}
+  // API 路由处理
+  if (path === '/api/random-books') {
+    return await handleRandomBooks(env);
+  }
 
-	const bookId = path.slice(1);
-	const bookKey = `book:${bookId}`;
+  // 书籍详情处理
+  return await handleBookDetail(path, env);
+}
 
-	if (!bookId) {
-	return new Response("请提供书籍ID", { status: 400 });
-	}
+// 处理随机书籍请求
+async function handleRandomBooks(env) {
+  try {
+    const totalBooks = parseInt(env.TOTAL_BOOKS_COUNT);
+    const limit = 20;
+    const targetCount = 10;
+    const startPosition = Math.floor(Math.random() * (totalBooks - limit));
+    
+    const { keys } = await env.BOOKS_KV.list({
+      limit,
+      cursor: startPosition.toString()
+    });
 
-	try {
-	const bookData = await env.BOOKS_KV.get(bookKey);
+    const books = await Promise.all(
+      keys
+        .sort(() => Math.random() - 0.5)
+        .slice(0, targetCount)
+        .map(async key => {
+          const bookData = await env.BOOKS_KV.get(key.name);
+          return bookData ? JSON.parse(bookData) : null;
+        })
+    );
 
-	if (!bookData) {
-	  return new Response("未找到该书籍", { status: 404 });
-	}
+    return new Response(
+      JSON.stringify(books.filter(Boolean).map(book => ({
+        id: book.id,
+        title: book.title
+      }))), 
+      {
+        headers: {
+          'content-type': 'application/json;charset=UTF-8',
+          'cache-control': 'public, max-age=300'
+        }
+      }
+    );
+  } catch (err) {
+    return new Response(
+      JSON.stringify({ error: '获取随机书籍失败' }), 
+      {
+        status: 500,
+        headers: { 'content-type': 'application/json;charset=UTF-8' }
+      }
+    );
+  }
+}
 
-	const bookInfo = JSON.parse(bookData);
+// 处理书籍详情请求
+async function handleBookDetail(path, env) {
+  const bookId = path.slice(1);
+  if (!bookId) {
+    return new Response("请提供书籍ID", { status: 400 });
+  }
 
-	// 使用内联模板直接渲染
-	const renderedHtml = HTML_TEMPLATE
-	  .replace(/\${title}/g, bookInfo.title || '')
-	  .replace(/\${author}/g, bookInfo.author || '')
-	  .replace(/\${publisher}/g, bookInfo.publisher || '')
-	  .replace(/\${publish_date}/g, bookInfo.publish_date || '')
-	  .replace(/\${isbn}/g, bookInfo.ISBN || '')
-	  .replace(/\${pages}/g, bookInfo.page_count || '');
+  try {
+    const bookData = await env.BOOKS_KV.get(`book:${bookId}`);
+    if (!bookData) {
+      return new Response("未找到该书籍", { status: 404 });
+    }
 
-	return new Response(renderedHtml, {
-	  headers: {
-		'content-type': 'text/html;charset=UTF-8',
-	  },
-	});
+    const bookInfo = JSON.parse(bookData);
+    const renderedHtml = HTML_TEMPLATE.replace(/\${(\w+)}/g, (_, key) => bookInfo[key] || '');
 
-	} catch (err) {
-	console.error('错误详情:', err);
-	return new Response(`服务器错误: ${err.message}`, { 
-	  status: 500,
-	  headers: {
-		'content-type': 'text/plain;charset=UTF-8',
-	  }
-	});
-	}
-	}
+    return new Response(renderedHtml, {
+      headers: { 'content-type': 'text/html;charset=UTF-8' }
+    });
+  } catch (err) {
+    return new Response(`服务器错误: ${err.message}`, { 
+      status: 500,
+      headers: { 'content-type': 'text/plain;charset=UTF-8' }
+    });
+  }
+}
