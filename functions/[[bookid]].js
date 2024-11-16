@@ -98,10 +98,6 @@ const RELATED_BOOKS_SCRIPT = [
     '</script>'
 ].join('\n');
 
-// 页面加载完成后执行
-document.addEventListener('DOMContentLoaded', loadRandomBooks);
-</script>`;
-
 // 内联模板
 const HTML_TEMPLATE = `<!DOCTYPE html>
 <html lang="zh-CN">
