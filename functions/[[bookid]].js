@@ -175,28 +175,22 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
 </html>`;
 
 export async function onRequest(context) {
-  const { request, env } = context;
-  const url = new URL(request.url);
-  const path = url.pathname;
-
-  // 静态文件处理
-  if (path.match(/\.(html|css|js)$/)) {
-    try {
-      // 从 public 目录获取静态文件
-      const response = await context.next();
-      if (!response) {
-        return new Response("文件未找到", { 
-          status: 404,
-          headers: { 'content-type': 'text/plain;charset=UTF-8' }
-        });
-      }
+  try {
+    // 如果请求的是 buy.html
+    if (context.request.url.endsWith('/buy.html')) {
+      // 从 public 目录读取 buy.html
+      const response = await context.env.ASSETS.fetch(new URL('/buy.html', context.request.url));
       return response;
-    } catch (err) {
-      return new Response("获取静态文件失败", { 
-        status: 500,
-        headers: { 'content-type': 'text/plain;charset=UTF-8' }
-      });
     }
+    
+    // 对于其他请求，返回 404
+    return new Response('Not Found', { status: 404 });
+  } catch (err) {
+    // 返回错误响应
+    return new Response('Internal Server Error', {
+      status: 500,
+      statusText: err.message
+    });
   }
 
   // API 路由处理
