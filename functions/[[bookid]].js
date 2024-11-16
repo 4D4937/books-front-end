@@ -178,7 +178,29 @@ export async function onRequest(context) {
   const { request, env } = context;
   const url = new URL(request.url);
   const path = url.pathname;
-
+  // 首先处理特定的静态页面路由
+  const staticPages = ['buy', 'about', 'contact']; // 添加其他静态页面
+  const pageName = path.slice(1).split('.')[0]; // 移除开头的'/'和可能的文件扩展名
+  
+  if (staticPages.includes(pageName)) {
+    try {
+      // 尝试获取对应的 html 文件
+      const response = await context.next();
+      if (response) {
+        return response;
+      }
+      return new Response("页面未找到", { 
+        status: 404,
+        headers: { 'content-type': 'text/plain;charset=UTF-8' }
+      });
+    } catch (err) {
+      console.error('静态页面处理错误:', err);
+      return new Response("服务器错误", { 
+        status: 500,
+        headers: { 'content-type': 'text/plain;charset=UTF-8' }
+      });
+    }
+  }
   // 静态文件处理
 	if (path.match(/\.(html|css|js)$/)) {
 	  try {
