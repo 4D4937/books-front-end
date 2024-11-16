@@ -169,93 +169,98 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
 </html>`;
 
 export async function onRequest(context) {
-  const { request, env } = context;
-  const url = new URL(request.url);
-  const path = url.pathname;
-  
-  // 如果是请求静态文件，让 Pages 平台自动处理
-  if (path.endsWith('.html') || path.endsWith('.css') || path.endsWith('.js')) {
-    return;
-  }
-    // 处理随机书籍 API 请求
-  if (path === '/api/random-books') {
-    try {
-      // 获取所有键
-      const { keys } = await env.BOOKS_KV.list();
-      
-      // 随机选择10本书
-      const randomBooks = [];
-      const availableKeys = [...keys];
-      
-      while (randomBooks.length < 10 && availableKeys.length > 0) {
-        const randomIndex = Math.floor(Math.random() * availableKeys.length);
-        const key = availableKeys[randomIndex];
-        
-        // 获取书籍数据
-        const bookData = await env.BOOKS_KV.get(key.name);
-        if (bookData) {
-          const book = JSON.parse(bookData);
-          randomBooks.push({
-            id: book.id,
-            title: book.title
-          });
-        }
-        
-        // 从可用键列表中移除已选择的键
-        availableKeys.splice(randomIndex, 1);
-      }
-      
-      return new Response(JSON.stringify(randomBooks), {
-        headers: {
-          'content-type': 'application/json;charset=UTF-8',
-          'cache-control': 'public, max-age=300' // 缓存5分钟
-        }
-      });
-    } catch (err) {
-      return new Response(JSON.stringify({ error: '获取随机书籍失败' }), {
-        status: 500,
-        headers: { 'content-type': 'application/json;charset=UTF-8' }
-      });
-    }
-  }
-  const bookId = path.slice(1);
-  const bookKey = `book:${bookId}`;
-  
-  if (!bookId) {
-    return new Response("请提供书籍ID", { status: 400 });
-  }
+	const { request, env } = context;
+	const url = new URL(request.url);
+	const path = url.pathname;
 
-  try {
-    const bookData = await env.BOOKS_KV.get(bookKey);
-    
-    if (!bookData) {
-      return new Response("未找到该书籍", { status: 404 });
-    }
+	// 如果是请求静态文件，让 Pages 平台自动处理
+	if (path.endsWith('.html') || path.endsWith('.css') || path.endsWith('.js')) {
+	return;
+	}
 
-    const bookInfo = JSON.parse(bookData);
-    
-    // 使用内联模板直接渲染
-    const renderedHtml = HTML_TEMPLATE
-      .replace(/\${title}/g, bookInfo.title || '')
-      .replace(/\${author}/g, bookInfo.author || '')
-      .replace(/\${publisher}/g, bookInfo.publisher || '')
-      .replace(/\${publish_date}/g, bookInfo.publish_date || '')
-      .replace(/\${isbn}/g, bookInfo.ISBN || '')
-      .replace(/\${pages}/g, bookInfo.page_count || '');
+	if (path === '/api/random-books') {
+	  try {
+		const randomBooks = [];
+		const limit = 20; // 每次获取20个键
+		const targetCount = 10; // 目标书籍数量
+		
+		// 从环境变量获取总书籍数量
+		const totalBooks = parseInt(env.TOTAL_BOOKS_COUNT);
+		const startPosition = Math.floor(Math.random() * (totalBooks - limit));
+		
+		const { keys } = await env.BOOKS_KV.list({
+		  limit: limit,
+		  cursor: startPosition.toString()
+		});
+		
+		const shuffledKeys = keys.sort(() => Math.random() - 0.5);
+		
+		const promises = shuffledKeys.slice(0, targetCount).map(async key => {
+		  const bookData = await env.BOOKS_KV.get(key.name);
+		  if (bookData) {
+			const book = JSON.parse(bookData);
+			return {
+			  id: book.id,
+			  title: book.title
+			};
+		  }
+		});
+		
+		const books = await Promise.all(promises);
+		const validBooks = books.filter(book => book);
+		
+		return new Response(JSON.stringify(validBooks), {
+		  headers: {
+			'content-type': 'application/json;charset=UTF-8',
+			'cache-control': 'public, max-age=300'
+		  }
+		});
+	  } catch (err) {
+		return new Response(JSON.stringify({ error: '获取随机书籍失败' }), {
+		  status: 500,
+		  headers: { 'content-type': 'application/json;charset=UTF-8' }
+		});
+	  }
+	}
 
-    return new Response(renderedHtml, {
-      headers: {
-        'content-type': 'text/html;charset=UTF-8',
-      },
-    });
-    
-  } catch (err) {
-    console.error('错误详情:', err);
-    return new Response(`服务器错误: ${err.message}`, { 
-      status: 500,
-      headers: {
-        'content-type': 'text/plain;charset=UTF-8',
-      }
-    });
-  }
-}
+	const bookId = path.slice(1);
+	const bookKey = `book:${bookId}`;
+
+	if (!bookId) {
+	return new Response("请提供书籍ID", { status: 400 });
+	}
+
+	try {
+	const bookData = await env.BOOKS_KV.get(bookKey);
+
+	if (!bookData) {
+	  return new Response("未找到该书籍", { status: 404 });
+	}
+
+	const bookInfo = JSON.parse(bookData);
+
+	// 使用内联模板直接渲染
+	const renderedHtml = HTML_TEMPLATE
+	  .replace(/\${title}/g, bookInfo.title || '')
+	  .replace(/\${author}/g, bookInfo.author || '')
+	  .replace(/\${publisher}/g, bookInfo.publisher || '')
+	  .replace(/\${publish_date}/g, bookInfo.publish_date || '')
+	  .replace(/\${isbn}/g, bookInfo.ISBN || '')
+	  .replace(/\${pages}/g, bookInfo.page_count || '');
+
+	return new Response(renderedHtml, {
+	  headers: {
+		'content-type': 'text/html;charset=UTF-8',
+	  },
+	});
+
+	} catch (err) {
+	console.error('错误详情:', err);
+	return new Response(`服务器错误: ${err.message}`, { 
+	  status: 500,
+	  headers: {
+		'content-type': 'text/plain;charset=UTF-8',
+	  }
+	});
+	}
+	}
