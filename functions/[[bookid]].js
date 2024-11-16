@@ -187,48 +187,34 @@ export async function onRequest(context) {
   return await handleBookDetail(path, env);
 }
 
-// 处理随机书籍请求
 async function handleRandomBooks(env) {
   try {
-    // 检查环境变量
     const totalBooks = parseInt(env.TOTAL_BOOKS_COUNT);
     if (!totalBooks || isNaN(totalBooks)) {
-      console.error('TOTAL_BOOKS_COUNT 无效:', env.TOTAL_BOOKS_COUNT);
       throw new Error('书籍总数配置无效');
     }
 
     const limit = 20;
     const targetCount = 10;
-    const startPosition = Math.floor(Math.random() * Math.max(totalBooks - limit, 0));
     
-    // 添加日志
-    console.log(`尝试获取书籍, 起始位置: ${startPosition}, 限制: ${limit}`);
-    
-    const listResult = await env.BOOKS_KV.list({
-      limit,
-      cursor: startPosition.toString()
+    // 修改：移除 cursor，改用 list_complete 方式获取
+    const { keys } = await env.BOOKS_KV.list({
+      limit: limit
     });
-    
-    if (!listResult || !listResult.keys || !listResult.keys.length) {
-      console.error('未能获取到书籍列表');
-      throw new Error('书籍列表为空');
+
+    if (!keys || !keys.length) {
+      throw new Error('未能获取到书籍列表');
     }
 
-    // 添加日志
-    console.log(`成功获取到 ${listResult.keys.length} 本书`);
-
-    const books = await Promise.all(
-      listResult.keys
+    // 随机选择书籍
+    const randomBooks = await Promise.all(
+      keys
         .sort(() => Math.random() - 0.5)
         .slice(0, targetCount)
         .map(async key => {
           try {
             const bookData = await env.BOOKS_KV.get(key.name);
-            if (!bookData) {
-              console.warn(`书籍数据为空: ${key.name}`);
-              return null;
-            }
-            return JSON.parse(bookData);
+            return bookData ? JSON.parse(bookData) : null;
           } catch (err) {
             console.error(`处理书籍数据失败: ${key.name}`, err);
             return null;
@@ -236,18 +222,16 @@ async function handleRandomBooks(env) {
         })
     );
 
-    const validBooks = books.filter(Boolean).map(book => ({
-      id: book.id,
-      title: book.title
-    }));
+    const validBooks = randomBooks
+      .filter(Boolean)
+      .map(book => ({
+        id: book.id,
+        title: book.title
+      }));
 
-    // 检查最终结果
     if (!validBooks.length) {
       throw new Error('没有有效的书籍数据');
     }
-
-    // 添加日志
-    console.log(`成功处理 ${validBooks.length} 本书`);
 
     return new Response(
       JSON.stringify(validBooks), 
