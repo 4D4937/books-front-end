@@ -131,11 +131,11 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
                 </div>
                 <div class="info-item">
                     <div class="info-label">ISBN</div>
-                    <div class="info-value">\${isbn}</div>
+                    <div class="info-value">\${ISBN}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">页数</div>
-                    <div class="info-value">\${pages}页</div>
+                    <div class="info-value">\${page_count}页</div>
                 </div>
             </div>
             
