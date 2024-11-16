@@ -240,32 +240,24 @@ async function handleRandomBooks(env) {
       throw new Error('书籍总数配置无效');
     }
 
-    const limit = 20;
     const targetCount = 10;
     
-    // 修改：移除 cursor，改用 list_complete 方式获取
-    const { keys } = await env.BOOKS_KV.list({
-      limit: limit
-    });
+    // 生成 1 到 totalBooks 范围内的随机数组
+    const randomIndexes = Array.from({ length: totalBooks }, (_, i) => i + 1)
+      .sort(() => Math.random() - 0.5)
+      .slice(0, targetCount);
 
-    if (!keys || !keys.length) {
-      throw new Error('未能获取到书籍列表');
-    }
-
-    // 随机选择书籍
+    // 获取随机选中的书籍数据
     const randomBooks = await Promise.all(
-      keys
-        .sort(() => Math.random() - 0.5)
-        .slice(0, targetCount)
-        .map(async key => {
-          try {
-            const bookData = await env.BOOKS_KV.get(key.name);
-            return bookData ? JSON.parse(bookData) : null;
-          } catch (err) {
-            console.error(`处理书籍数据失败: ${key.name}`, err);
-            return null;
-          }
-        })
+      randomIndexes.map(async index => {
+        try {
+          const bookData = await env.BOOKS_KV.get(`book:${index}`);
+          return bookData ? JSON.parse(bookData) : null;
+        } catch (err) {
+          console.error(`处理书籍数据失败: book:${index}`, err);
+          return null;
+        }
+      })
     );
 
     const validBooks = randomBooks

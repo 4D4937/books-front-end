@@ -21307,3 +21307,461 @@
 2024-11-16 11:28:45,599 - WARNING - 上传失败 ID: 177388, 状态码: 429, 响应: {"success":false,"errors":[{"code":971,"message":"Please wait and consider throttling your request speed"}],"messages":[],"result":null}
 2024-11-16 11:28:45,600 - WARNING - 上传失败 ID: 177355, 状态码: 429, 响应: {"success":false,"errors":[{"code":971,"message":"Please wait and consider throttling your request speed"}],"messages":[],"result":null}
 2024-11-16 11:28:45,601 - WARNING - 上传失败 ID: 177383, 状态码: 429, 响应: {"success":false,"errors":[{"code":971,"message":"Please wait and consider throttling your request speed"}],"messages":[],"result":null}
+2024-11-16 14:10:25,273 - INFO - 成功读取 1000 条记录
+2024-11-16 14:10:25,274 - INFO - 开始上传 1000 本书籍数据，使用 10 个线程
+2024-11-16 14:10:26,155 - WARNING - 上传失败 ID: 7248, 状态码: 429, 响应: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 10048,
+      "message": "your account has reached the free usage limit for this operation for today"
+    }
+  ],
+  "messages": []
+}
+
+2024-11-16 14:10:26,155 - WARNING - 上传失败 ID: 7283, 状态码: 429, 响应: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 10048,
+      "message": "your account has reached the free usage limit for this operation for today"
+    }
+  ],
+  "messages": []
+}
+
+2024-11-16 14:10:26,157 - WARNING - 上传失败 ID: 7275, 状态码: 429, 响应: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 10048,
+      "message": "your account has reached the free usage limit for this operation for today"
+    }
+  ],
+  "messages": []
+}
+
+2024-11-16 14:10:26,157 - WARNING - 上传失败 ID: 7872, 状态码: 429, 响应: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 10048,
+      "message": "your account has reached the free usage limit for this operation for today"
+    }
+  ],
+  "messages": []
+}
+
+2024-11-16 14:10:26,157 - WARNING - 上传失败 ID: 7279, 状态码: 429, 响应: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 10048,
+      "message": "your account has reached the free usage limit for this operation for today"
+    }
+  ],
+  "messages": []
+}
+
+2024-11-16 14:10:26,157 - WARNING - 上传失败 ID: 7637, 状态码: 429, 响应: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 10048,
+      "message": "your account has reached the free usage limit for this operation for today"
+    }
+  ],
+  "messages": []
+}
+
+2024-11-16 14:10:26,158 - WARNING - 上传失败 ID: 6961, 状态码: 429, 响应: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 10048,
+      "message": "your account has reached the free usage limit for this operation for today"
+    }
+  ],
+  "messages": []
+}
+
+2024-11-16 14:10:26,159 - WARNING - 上传失败 ID: 7629, 状态码: 429, 响应: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 10048,
+      "message": "your account has reached the free usage limit for this operation for today"
+    }
+  ],
+  "messages": []
+}
+
+2024-11-16 14:10:26,159 - WARNING - 上传失败 ID: 7351, 状态码: 429, 响应: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 10048,
+      "message": "your account has reached the free usage limit for this operation for today"
+    }
+  ],
+  "messages": []
+}
+
+2024-11-16 14:10:26,161 - WARNING - 上传失败 ID: 7895, 状态码: 429, 响应: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 10048,
+      "message": "your account has reached the free usage limit for this operation for today"
+    }
+  ],
+  "messages": []
+}
+
+2024-11-16 14:10:27,859 - WARNING - 上传失败 ID: 7283, 状态码: 429, 响应: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 10048,
+      "message": "your account has reached the free usage limit for this operation for today"
+    }
+  ],
+  "messages": []
+}
+
+2024-11-16 14:10:27,860 - WARNING - 上传失败 ID: 7248, 状态码: 429, 响应: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 10048,
+      "message": "your account has reached the free usage limit for this operation for today"
+    }
+  ],
+  "messages": []
+}
+
+2024-11-16 14:10:27,860 - WARNING - 上传失败 ID: 7872, 状态码: 429, 响应: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 10048,
+      "message": "your account has reached the free usage limit for this operation for today"
+    }
+  ],
+  "messages": []
+}
+
+2024-11-16 14:10:27,860 - WARNING - 上传失败 ID: 7275, 状态码: 429, 响应: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 10048,
+      "message": "your account has reached the free usage limit for this operation for today"
+    }
+  ],
+  "messages": []
+}
+
+2024-11-16 14:10:27,992 - WARNING - 上传失败 ID: 7279, 状态码: 429, 响应: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 10048,
+      "message": "your account has reached the free usage limit for this operation for today"
+    }
+  ],
+  "messages": []
+}
+
+2024-11-16 14:10:27,993 - WARNING - 上传失败 ID: 6961, 状态码: 429, 响应: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 10048,
+      "message": "your account has reached the free usage limit for this operation for today"
+    }
+  ],
+  "messages": []
+}
+
+2024-11-16 14:10:28,000 - WARNING - 上传失败 ID: 7629, 状态码: 429, 响应: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 10048,
+      "message": "your account has reached the free usage limit for this operation for today"
+    }
+  ],
+  "messages": []
+}
+
+2024-11-16 14:10:28,115 - WARNING - 上传失败 ID: 7895, 状态码: 429, 响应: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 10048,
+      "message": "your account has reached the free usage limit for this operation for today"
+    }
+  ],
+  "messages": []
+}
+
+2024-11-16 14:10:28,131 - WARNING - 上传失败 ID: 7351, 状态码: 429, 响应: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 10048,
+      "message": "your account has reached the free usage limit for this operation for today"
+    }
+  ],
+  "messages": []
+}
+
+2024-11-16 14:10:28,276 - WARNING - 上传失败 ID: 7637, 状态码: 429, 响应: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 10048,
+      "message": "your account has reached the free usage limit for this operation for today"
+    }
+  ],
+  "messages": []
+}
+
+2024-11-16 14:10:29,582 - WARNING - 上传失败 ID: 7872, 状态码: 429, 响应: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 10048,
+      "message": "your account has reached the free usage limit for this operation for today"
+    }
+  ],
+  "messages": []
+}
+
+2024-11-16 14:10:29,582 - WARNING - 上传失败 ID: 7283, 状态码: 429, 响应: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 10048,
+      "message": "your account has reached the free usage limit for this operation for today"
+    }
+  ],
+  "messages": []
+}
+
+2024-11-16 14:10:29,582 - WARNING - 上传失败 ID: 7248, 状态码: 429, 响应: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 10048,
+      "message": "your account has reached the free usage limit for this operation for today"
+    }
+  ],
+  "messages": []
+}
+
+2024-11-16 14:10:29,592 - WARNING - 上传失败 ID: 7275, 状态码: 429, 响应: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 10048,
+      "message": "your account has reached the free usage limit for this operation for today"
+    }
+  ],
+  "messages": []
+}
+
+2024-11-16 14:10:29,730 - WARNING - 上传失败 ID: 7279, 状态码: 429, 响应: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 10048,
+      "message": "your account has reached the free usage limit for this operation for today"
+    }
+  ],
+  "messages": []
+}
+
+2024-11-16 14:10:29,741 - WARNING - 上传失败 ID: 6961, 状态码: 429, 响应: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 10048,
+      "message": "your account has reached the free usage limit for this operation for today"
+    }
+  ],
+  "messages": []
+}
+
+2024-11-16 14:10:29,769 - WARNING - 上传失败 ID: 7895, 状态码: 429, 响应: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 10048,
+      "message": "your account has reached the free usage limit for this operation for today"
+    }
+  ],
+  "messages": []
+}
+
+2024-11-16 14:10:29,894 - WARNING - 上传失败 ID: 7351, 状态码: 429, 响应: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 10048,
+      "message": "your account has reached the free usage limit for this operation for today"
+    }
+  ],
+  "messages": []
+}
+
+2024-11-16 14:10:30,146 - WARNING - 上传失败 ID: 7637, 状态码: 429, 响应: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 10048,
+      "message": "your account has reached the free usage limit for this operation for today"
+    }
+  ],
+  "messages": []
+}
+
+2024-11-16 14:10:30,385 - WARNING - 上传失败 ID: 22096, 状态码: 429, 响应: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 10048,
+      "message": "your account has reached the free usage limit for this operation for today"
+    }
+  ],
+  "messages": []
+}
+
+2024-11-16 14:10:30,386 - WARNING - 上传失败 ID: 16615, 状态码: 429, 响应: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 10048,
+      "message": "your account has reached the free usage limit for this operation for today"
+    }
+  ],
+  "messages": []
+}
+
+2024-11-16 14:10:30,386 - WARNING - 上传失败 ID: 8083, 状态码: 429, 响应: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 10048,
+      "message": "your account has reached the free usage limit for this operation for today"
+    }
+  ],
+  "messages": []
+}
+
+2024-11-16 14:10:30,387 - WARNING - 上传失败 ID: 15923, 状态码: 429, 响应: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 10048,
+      "message": "your account has reached the free usage limit for this operation for today"
+    }
+  ],
+  "messages": []
+}
+
+2024-11-16 14:10:30,513 - WARNING - 上传失败 ID: 25534, 状态码: 429, 响应: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 10048,
+      "message": "your account has reached the free usage limit for this operation for today"
+    }
+  ],
+  "messages": []
+}
+
+2024-11-16 14:10:30,629 - WARNING - 上传失败 ID: 26120, 状态码: 429, 响应: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 10048,
+      "message": "your account has reached the free usage limit for this operation for today"
+    }
+  ],
+  "messages": []
+}
+
+2024-11-16 14:10:30,630 - WARNING - 上传失败 ID: 26121, 状态码: 429, 响应: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 10048,
+      "message": "your account has reached the free usage limit for this operation for today"
+    }
+  ],
+  "messages": []
+}
+
+2024-11-16 14:10:30,898 - WARNING - 上传失败 ID: 7629, 状态码: 429, 响应: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 10048,
+      "message": "your account has reached the free usage limit for this operation for today"
+    }
+  ],
+  "messages": []
+}
+
+2024-11-16 14:10:31,024 - WARNING - 上传失败 ID: 26887, 状态码: 429, 响应: {
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 10048,
+      "message": "your account has reached the free usage limit for this operation for today"
+    }
+  ],
+  "messages": []
+}
+
