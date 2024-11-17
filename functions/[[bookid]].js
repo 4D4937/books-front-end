@@ -181,9 +181,18 @@ export async function onRequest(context) {
   const url = new URL(request.url);
   const path = url.pathname;
   
-  // 添加站点地图路由
+  // 站点地图路由
   if (path === '/sitemap.xml') {
-    return await generateSitemap(env);
+    console.log('请求站点地图...');
+    try {
+      return await generateSitemap(env);
+    } catch (err) {
+      console.error('站点地图路由处理错误:', err);
+      return new Response('服务器内部错误', { 
+        status: 500,
+        headers: { 'Content-Type': 'text/plain;charset=UTF-8' }
+      });
+    }
   }
   // 首先处理特定的静态页面路由
   const staticPages = ['buy', 'about', 'contact']; // 添加其他静态页面
@@ -304,38 +313,62 @@ async function handleRandomBooks(env) {
 
 async function generateSitemap(env) {
   try {
-    // 从数据库获取所有书籍ID
-    const stmt = env.BOOKS_D1.prepare(`
-      SELECT id 
-      FROM books 
-      ORDER BY id
-    `);
+    // 验证数据库连接
+    if (!env || !env.BOOKS_D1) {
+      console.error('数据库环境变量未定义');
+      throw new Error('数据库配置错误');
+    }
+
+    // 使用更简单的查询，并添加限制
+    const stmt = env.BOOKS_D1.prepare('SELECT id FROM books LIMIT 50000');
     
+    console.log('执行数据库查询...');
     const results = await stmt.all();
     
-    // 生成XML格式的站点地图
-    const urls = results.map(row => 
-      `https://liberpdf.top/${row.id}`
-    ).join('\n');
-    
-    const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls.split('\n').map(url => `  <url>
-    <loc>${url}</loc>
-  </url>`).join('\n')}
-</urlset>`;
+    if (!results || !Array.isArray(results)) {
+      console.error('查询结果无效:', results);
+      throw new Error('查询结果格式错误');
+    }
 
-    return new Response(sitemap, {
+    console.log(`获取到 ${results.length} 条记录`);
+
+    // 构建基础URL
+    const baseUrl = 'https://liberpdf.top/';
+    
+    // 生成URL列表
+    let sitemapContent = '<?xml version="1.0" encoding="UTF-8"?>\n';
+    sitemapContent += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+    
+    // 逐个添加URL
+    for (const row of results) {
+      if (row && row.id) {
+        sitemapContent += `  <url>\n    <loc>${baseUrl}${row.id}</loc>\n  </url>\n`;
+      }
+    }
+    
+    sitemapContent += '</urlset>';
+
+    // 返回响应
+    return new Response(sitemapContent, {
       headers: {
-        'Content-Type': 'application/xml',
+        'Content-Type': 'application/xml;charset=UTF-8',
         'Cache-Control': 'public, max-age=86400'
       }
     });
+
   } catch (err) {
-    console.error('生成站点地图失败:', err);
-    return new Response('生成站点地图失败', { 
-      status: 500,
-      headers: { 'Content-Type': 'text/plain;charset=UTF-8' }
-    });
+    console.error('站点地图生成错误:', err);
+    
+    // 返回更详细的错误信息
+    return new Response(
+      `站点地图生成失败: ${err.message}\n${err.stack}`, 
+      { 
+        status: 500,
+        headers: { 
+          'Content-Type': 'text/plain;charset=UTF-8',
+          'X-Error-Details': err.message
+        }
+      }
+    );
   }
 }
