@@ -310,7 +310,6 @@ async function handleRandomBooks(env) {
   }
 }
 
-// 处理书籍详情请求
 async function handleBookDetail(path, env) {
   const bookId = path.slice(1);
   if (!bookId) {
@@ -318,13 +317,16 @@ async function handleBookDetail(path, env) {
   }
 
   try {
-    const bookData = await env.BOOKS_KV.get(`book:${bookId}`);
-    if (!bookData) {
+    const stmt = env.BOOKS_D1.prepare(
+      `SELECT * FROM books WHERE id = ? AND status = 'active' LIMIT 1`
+    );
+    const result = await stmt.bind(bookId).first();
+    
+    if (!result) {
       return new Response("未找到该书籍", { status: 404 });
     }
 
-    const bookInfo = JSON.parse(bookData);
-    const renderedHtml = HTML_TEMPLATE.replace(/\${(\w+)}/g, (_, key) => bookInfo[key] || '');
+    const renderedHtml = HTML_TEMPLATE.replace(/\${(\w+)}/g, (_, key) => result[key] || '');
 
     return new Response(renderedHtml, {
       headers: { 'content-type': 'text/html;charset=UTF-8' }
