@@ -180,6 +180,11 @@ export async function onRequest(context) {
   const { request, env } = context;
   const url = new URL(request.url);
   const path = url.pathname;
+  
+  // 添加站点地图路由
+  if (path === '/sitemap.xml') {
+    return await generateSitemap(env);
+  }
   // 首先处理特定的静态页面路由
   const staticPages = ['buy', 'about', 'contact']; // 添加其他静态页面
   const pageName = path.slice(1).split('.')[0]; // 移除开头的'/'和可能的文件扩展名
@@ -203,6 +208,7 @@ export async function onRequest(context) {
       });
     }
   }
+  
   // 静态文件处理
 	if (path.match(/\.(html|css|js)$/)) {
 	  try {
@@ -292,6 +298,44 @@ async function handleRandomBooks(env) {
       headers: { 
         'content-type': 'application/json;charset=UTF-8'
       }
+    });
+  }
+}
+
+async function generateSitemap(env) {
+  try {
+    // 从数据库获取所有书籍ID
+    const stmt = env.BOOKS_D1.prepare(`
+      SELECT id 
+      FROM books 
+      ORDER BY id
+    `);
+    
+    const results = await stmt.all();
+    
+    // 生成XML格式的站点地图
+    const urls = results.map(row => 
+      `https://liberpdf.top/${row.id}`
+    ).join('\n');
+    
+    const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls.split('\n').map(url => `  <url>
+    <loc>${url}</loc>
+  </url>`).join('\n')}
+</urlset>`;
+
+    return new Response(sitemap, {
+      headers: {
+        'Content-Type': 'application/xml',
+        'Cache-Control': 'public, max-age=86400'
+      }
+    });
+  } catch (err) {
+    console.error('生成站点地图失败:', err);
+    return new Response('生成站点地图失败', { 
+      status: 500,
+      headers: { 'Content-Type': 'text/plain;charset=UTF-8' }
     });
   }
 }
