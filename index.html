@@ -1,27 +1,41 @@
-<body>
-    <site-header></site-header>
+<div class="container">
+    <!-- ... 现有内容 ... -->
     
-    <div class="container">
-        <!-- ... 现有内容 ... -->
-        
-        <div id="sitemapInfo">
-            <a href="/sitemap.xml">站点地图</a>
-            (<span id="urlCount">加载中...</span>)
-        </div>
+    <div id="sitemapInfo">
+        <a href="/sitemap.xml">站点地图</a>
+        (<span id="urlCount">加载中...</span>)
+        <ul id="urlList"></ul>
     </div>
+</div>
 
-    <script>
-    async function getUrlCount() {
-        try {
-            const response = await fetch('/sitemap.xml');
-            const text = await response.text();
-            const urlCount = (text.match(/<url>/g) || []).length;
-            document.getElementById('urlCount').textContent = `${urlCount}个网址`;
-        } catch (error) {
-            document.getElementById('urlCount').textContent = '加载失败';
-        }
+<script>
+async function getUrlCount() {
+    try {
+        const response = await fetch('/sitemap.xml');
+        const text = await response.text();
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(text, 'text/xml');
+        const urls = xmlDoc.getElementsByTagName('loc');
+        
+        const urlCount = urls.length;
+        document.getElementById('urlCount').textContent = `${urlCount}个网址`;
+        
+        // 显示所有链接
+        const urlList = document.getElementById('urlList');
+        urlList.innerHTML = '';
+        Array.from(urls).forEach(url => {
+            const li = document.createElement('li');
+            const link = document.createElement('a');
+            link.href = url.textContent;
+            link.textContent = url.textContent;
+            li.appendChild(link);
+            urlList.appendChild(li);
+        });
+    } catch (error) {
+        document.getElementById('urlCount').textContent = '加载失败';
+        document.getElementById('urlList').innerHTML = '<li>链接加载失败</li>';
     }
+}
 
-    document.addEventListener('DOMContentLoaded', getUrlCount);
-    </script>
-</body>
+document.addEventListener('DOMContentLoaded', getUrlCount);
+</script>
