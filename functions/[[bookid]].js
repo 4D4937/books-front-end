@@ -318,29 +318,36 @@ async function handleRandomBooks(env) {
 }
 
 
-
+/**
+ * 生成网站的站点地图
+ * @param {Object} env - 环境变量对象，包含数据库连接
+ * @param {Request} request - 请求对象
+ * @returns {Response} 返回XML格式的站点地图
+ */
 async function generateSitemap(env, request) {
   try {
-    if (!env || !env.BOOKS_D1) {
-      throw new Error('数据库配置错误');
+    // 验证环境变量
+    if (!env?.BOOKS_D1) {
+      throw new Error('数据库配置错误：缺少BOOKS_D1环境变量');
     }
 
+    // 配置常量
+    const URLS_PER_SITEMAP = 50000; // 每个站点地图包含的URL数量
+    const baseUrl = 'https://liberpdf.top';
     const url = new URL(request.url);
     const path = url.pathname;
     
-    // 查询总记录数
+    // 查询数据库中的总记录数
     const countStmt = env.BOOKS_D1.prepare('SELECT COUNT(*) as count FROM books');
     const { count } = await countStmt.first();
     
-    const URLS_PER_SITEMAP = 50000;
-    const baseUrl = 'https://liberpdf.top';
-    
-    // 处理主站点地图索引
+    // 处理主站点地图索引文件 (/sitemap.xml)
     if (path === '/sitemap.xml') {
       const sitemapCount = Math.ceil(count / URLS_PER_SITEMAP);
       let indexContent = '<?xml version="1.0" encoding="UTF-8"?>\n';
       indexContent += '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
       
+      // 生成所有分页站点地图的索引
       for (let i = 0; i < sitemapCount; i++) {
         indexContent += `  <sitemap>\n    <loc>${baseUrl}/sitemap${i}.xml</loc>\n  </sitemap>\n`;
       }
@@ -351,16 +358,17 @@ async function generateSitemap(env, request) {
       });
     }
     
-    // 处理分页站点地图
+    // 解析分页站点地图的页码 (/sitemap0.xml, /sitemap1.xml, ...)
     const matches = path.match(/\/sitemap(\d+)\.xml/);
     if (!matches) {
-      return new Response('Invalid sitemap URL', { status: 400 });
+      return new Response('无效的站点地图URL', { status: 400 });
     }
     
+    // 计算分页偏移量
     const sitemapIndex = parseInt(matches[1]);
     const offset = sitemapIndex * URLS_PER_SITEMAP;
     
-    // 查询当前分页的记录
+    // 查询当前分页的图书记录
     const stmt = env.BOOKS_D1.prepare(
       'SELECT id FROM books LIMIT ? OFFSET ?'
     ).bind(URLS_PER_SITEMAP, offset);
@@ -368,16 +376,18 @@ async function generateSitemap(env, request) {
     const results = await stmt.all();
     const rows = results.results || results;
 
-    if (!rows || rows.length === 0) {
-      return new Response('No data found', { status: 404 });
+    // 检查查询结果
+    if (!rows?.length) {
+      return new Response('未找到数据', { status: 404 });
     }
 
-    // 生成简化的分页站点地图
+    // 生成分页站点地图的XML内容
     let sitemapContent = '<?xml version="1.0" encoding="UTF-8"?>\n';
     sitemapContent += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
     
+    // 为每本图书生成URL条目
     for (const row of rows) {
-      if (row && row.id) {
+      if (row?.id) {
         sitemapContent += `  <url>\n    <loc>${baseUrl}/${row.id}</loc>\n  </url>\n`;
       }
     }
@@ -390,6 +400,9 @@ async function generateSitemap(env, request) {
 
   } catch (err) {
     console.error('站点地图生成失败:', err);
-    return new Response(`站点地图生成失败: ${err.message}`, { status: 500 });
+    return new Response(`站点地图生成失败: ${err.message}`, { 
+      status: 500,
+      headers: { 'Content-Type': 'text/plain;charset=UTF-8' }
+    });
   }
 }
