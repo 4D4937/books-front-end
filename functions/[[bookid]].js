@@ -264,10 +264,9 @@ async function handleBookDetail(path, env) {
   }
 
   try {
-    // 移除了 printf 格式化 ISBN 的部分
     const stmt = env.BOOKS_D1.prepare(
       `SELECT id, title, author, publisher, publish_data, 
-      ISBN, page_count 
+      ISBN, CAST(page_count AS INTEGER) as page_count 
       FROM books WHERE id = ? LIMIT 1`
     );
     const result = await stmt.bind(bookId).first();
