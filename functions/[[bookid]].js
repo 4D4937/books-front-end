@@ -332,7 +332,7 @@ async function generateSitemap(env, request) {
     const countStmt = env.BOOKS_D1.prepare('SELECT COUNT(*) as count FROM books');
     const { count } = await countStmt.first();
     
-    const URLS_PER_SITEMAP = 50000;
+    const URLS_PER_SITEMAP = 10000;
     const baseUrl = 'https://liberpdf.top';
     
     // 处理主站点地图索引
