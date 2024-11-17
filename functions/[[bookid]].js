@@ -329,7 +329,7 @@ async function generateSitemap(env) {
     console.log('数据库记录总数:', countResult);
 
     // 执行主查询
-    const stmt = env.BOOKS_D1.prepare('SELECT id FROM books LIMIT 50000');
+    const stmt = env.BOOKS_D1.prepare('SELECT id FROM books');
     const results = await stmt.all();
     
     // 详细记录查询结果
