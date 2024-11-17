@@ -329,7 +329,7 @@ async function generateSitemap(env) {
     const countResult = await testStmt.first();
     console.log('数据库记录总数:', countResult);
 
-    const PAGE_SIZE = 1000; // 每页查询1000条记录
+    const PAGE_SIZE = 10000; // 每页查询1000条记录
     let offset = 0;
     let allRows = [];
     
