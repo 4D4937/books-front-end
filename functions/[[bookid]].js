@@ -104,25 +104,18 @@ const RELATED_BOOKS_SCRIPT = [
     '</script>'
 ].join('\n');
 
-// ISBN 格式化函数
-function formatISBN(isbn) {
-    if (typeof isbn === 'number') {
-        // 处理科学计数法格式
-        return isbn.toFixed(0);
-    }
-    return isbn;
-}
 
-// HTML 模板
+
+// 内联模板
 const HTML_TEMPLATE = `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="\${title}，作者：\${author}，出版社：\${publisher}，出版时间：\${publish_date}，ISBN：\${formatISBN(ISBN)}，全书\${page_count}页。提供PDF电子书下载，支持文字检索，阅读体验好。">
+    <meta name="description" content="\${title}，作者：\${author}，出版社：\${publisher}，出版时间：\${publish_date}，ISBN：\${ISBN}，全书\${page_count}页。提供PDF电子书下载，支持文字检索，阅读体验好。">
     <title>\${title} pdf</title>
     ${INLINE_STYLES}
-    ${HEADER_SCRIPT}
+	${HEADER_SCRIPT}
 </head>
 <body>
     <site-header></site-header>
@@ -146,7 +139,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
                 </div>
                 <div class="info-item">
                     <div class="info-label">ISBN</div>
-                    <div class="info-value">\${formatISBN(ISBN)}</div>
+                    <div class="info-value">\${ISBN}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">页数</div>
@@ -251,7 +244,9 @@ async function handleBookDetail(path, env) {
 
   try {
     const stmt = env.BOOKS_D1.prepare(
-      `SELECT * FROM books WHERE id = ? LIMIT 1`
+      `SELECT id, title, author, publisher, publish_date, 
+      printf('%013.0f', ISBN) as ISBN, page_count 
+      FROM books WHERE id = ? LIMIT 1`
     );
     const result = await stmt.bind(bookId).first();
     
@@ -259,16 +254,7 @@ async function handleBookDetail(path, env) {
       return new Response("未找到该书籍", { status: 404 });
     }
 
-    // 处理 ISBN 格式化
-    const formattedData = {
-      ...result,
-      ISBN: formatISBN(result.ISBN)
-    };
-
-    // 使用格式化后的数据渲染模板
-    const renderedHtml = HTML_TEMPLATE.replace(/\${(\w+)}/g, (_, key) => {
-      return formattedData[key] || '';
-    });
+    const renderedHtml = HTML_TEMPLATE.replace(/\${(\w+)}/g, (_, key) => result[key] || '');
 
     return new Response(renderedHtml, {
       headers: { 'content-type': 'text/html;charset=UTF-8' }
