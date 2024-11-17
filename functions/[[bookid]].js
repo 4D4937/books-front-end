@@ -233,60 +233,49 @@ export async function onRequest(context) {
   return await handleBookDetail(path, env);
 }
 
+
 async function handleRandomBooks(env) {
   try {
     const totalBooks = parseInt(env.TOTAL_BOOKS_COUNT);
-    console.log('总书籍数:', totalBooks);
-
     if (!totalBooks || isNaN(totalBooks)) {
       throw new Error('书籍总数配置无效');
     }
 
-    // 设定 ID 范围
-    const MIN_BOOK_ID = 1;  // 最小 ID
-    const MAX_BOOK_ID = 9999999999;  // 最大 ID
-    const targetCount = 10;
-    const maxAttempts = 2000;  // 最大尝试次数，避免无限循环
-    
-    const foundBooks = [];
-    let attempts = 0;
-
-    while (foundBooks.length < targetCount && attempts < maxAttempts) {
-      // 生成一批随机 ID
-      const batchSize = targetCount - foundBooks.length;
-      const randomIds = new Set(); // 使用 Set 避免重复
-      
-      while (randomIds.size < batchSize) {
-        const randomId = Math.floor(Math.random() * (MAX_BOOK_ID - MIN_BOOK_ID + 1)) + MIN_BOOK_ID;
-        randomIds.add(randomId);
-      }
-
-      // 并行获取这批书籍数据
-      const batchResults = await Promise.all(
-        Array.from(randomIds).map(async id => {
-          try {
-            const key = `book:${id}`;
-            const bookData = await env.BOOKS_KV.get(key);
-            if (!bookData) return null;
-            
-            const parsed = JSON.parse(bookData);
-            console.log(`成功获取书籍: ${key}, 标题: ${parsed.title}`);
-            return parsed;
-          } catch (err) {
-            console.error(`处理书籍数据失败: book:${id}`, err.message);
-            return null;
-          }
-        })
-      );
-
-      // 添加有效的书籍到结果集
-      foundBooks.push(...batchResults.filter(Boolean));
-      attempts++;
+    // 从索引中获取有效 ID 列表
+    const validIdsStr = await env.BOOKS_KV.get('valid_book_ids');
+    if (!validIdsStr) {
+      throw new Error('未找到有效书籍索引');
     }
 
-    // 确保只返回需要的数量
-    const validBooks = foundBooks
-      .slice(0, targetCount)
+    // 解析并随机选择 ID
+    const validIds = JSON.parse(validIdsStr);
+    const targetCount = 10;
+    const randomIds = [];
+    
+    // Fisher-Yates 洗牌算法选择随机 ID
+    const tempIds = [...validIds];
+    for (let i = 0; i < targetCount && tempIds.length > 0; i++) {
+      const randomIndex = Math.floor(Math.random() * tempIds.length);
+      randomIds.push(tempIds[randomIndex]);
+      tempIds[randomIndex] = tempIds[tempIds.length - 1];
+      tempIds.pop();
+    }
+
+    // 获取选中的书籍数据
+    const books = await Promise.all(
+      randomIds.map(async id => {
+        try {
+          const bookData = await env.BOOKS_KV.get(`book:${id}`);
+          return bookData ? JSON.parse(bookData) : null;
+        } catch (err) {
+          console.error(`获取书籍失败: ${id}`, err);
+          return null;
+        }
+      })
+    );
+
+    const validBooks = books
+      .filter(Boolean)
       .map(book => ({
         id: book.id,
         title: book.title
