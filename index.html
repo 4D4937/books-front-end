@@ -12,7 +12,7 @@
     <script>
         async function loadSitemapUrls() {
             try {
-                const BATCH_SIZE = 10000; // 每批显示的URL数量
+                const BATCH_SIZE = 10000;
                 let allUrls = [];
                 let displayedCount = 0;
                 
@@ -30,17 +30,16 @@
                 };
                 
                 // 分批显示URL
-                const displayUrls = (urls, start) => {
+                const displayUrls = (urls, start, totalDisplayed) => {
                     const end = Math.min(start + BATCH_SIZE, urls.length);
                     const batch = urls.slice(start, end);
                     const urlListHtml = batch.map(url => `<a href="${url}">${url}</a><br>`).join('');
                     document.getElementById('urlList').insertAdjacentHTML('beforeend', urlListHtml);
-                    displayedCount = end;
+                    displayedCount = totalDisplayed + end;
                     updateCount();
                     
-                    // 如果还有未显示的URL，安排下一批显示
                     if (end < urls.length) {
-                        setTimeout(() => displayUrls(urls, end), 100);
+                        setTimeout(() => displayUrls(urls, end, totalDisplayed), 100);
                     }
                 };
                 
@@ -50,12 +49,14 @@
                     const text = await response.text();
                     const doc = parser.parseFromString(text, 'text/xml');
                     const urls = Array.from(doc.getElementsByTagName('loc')).map(loc => loc.textContent);
+                    
+                    // 立即显示当前子站点地图的URL
+                    const startIndex = displayedCount;
+                    displayUrls(urls, 0, startIndex);
+                    
                     allUrls = allUrls.concat(urls);
                     updateCount();
                 }
-                
-                // 开始分批显示URL
-                displayUrls(allUrls, 0);
                 
             } catch (error) {
                 console.error('加载站点地图失败:', error);
@@ -63,6 +64,7 @@
             }
         }
 
+        // 页面加载完成后立即执行
         loadSitemapUrls();
     </script>
 </body>
