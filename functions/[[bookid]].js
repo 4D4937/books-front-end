@@ -313,34 +313,44 @@ async function handleRandomBooks(env) {
 
 async function generateSitemap(env) {
   try {
-    // 验证数据库连接
     if (!env || !env.BOOKS_D1) {
       console.error('数据库环境变量未定义');
       throw new Error('数据库配置错误');
     }
 
-    // 使用更简单的查询，并添加限制
+    // 先测试数据库连接和结果格式
+    const testStmt = env.BOOKS_D1.prepare('SELECT COUNT(*) as count FROM books');
+    const countResult = await testStmt.first();
+    console.log('数据库记录总数:', countResult);
+
+    // 执行主查询
     const stmt = env.BOOKS_D1.prepare('SELECT id FROM books LIMIT 50000');
-    
-    console.log('执行数据库查询...');
     const results = await stmt.all();
     
-    if (!results || !Array.isArray(results)) {
-      console.error('查询结果无效:', results);
-      throw new Error('查询结果格式错误');
+    // 详细记录查询结果
+    console.log('查询结果类型:', typeof results);
+    console.log('查询结果:', JSON.stringify(results));
+    
+    // 检查结果格式
+    if (!results) {
+      throw new Error('查询结果为空');
+    }
+    
+    // 获取实际的结果数组
+    const rows = results.results || results; // D1可能会将结果包装在results属性中
+    
+    if (!Array.isArray(rows)) {
+      throw new Error(`查询结果格式错误: ${typeof rows}`);
     }
 
-    console.log(`获取到 ${results.length} 条记录`);
+    console.log(`获取到 ${rows.length} 条记录`);
 
-    // 构建基础URL
+    // 生成站点地图
     const baseUrl = 'https://liberpdf.top/';
-    
-    // 生成URL列表
     let sitemapContent = '<?xml version="1.0" encoding="UTF-8"?>\n';
     sitemapContent += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
     
-    // 逐个添加URL
-    for (const row of results) {
+    for (const row of rows) {
       if (row && row.id) {
         sitemapContent += `  <url>\n    <loc>${baseUrl}${row.id}</loc>\n  </url>\n`;
       }
@@ -348,7 +358,6 @@ async function generateSitemap(env) {
     
     sitemapContent += '</urlset>';
 
-    // 返回响应
     return new Response(sitemapContent, {
       headers: {
         'Content-Type': 'application/xml;charset=UTF-8',
@@ -357,18 +366,20 @@ async function generateSitemap(env) {
     });
 
   } catch (err) {
-    console.error('站点地图生成错误:', err);
-    
     // 返回更详细的错误信息
-    return new Response(
-      `站点地图生成失败: ${err.message}\n${err.stack}`, 
-      { 
-        status: 500,
-        headers: { 
-          'Content-Type': 'text/plain;charset=UTF-8',
-          'X-Error-Details': err.message
-        }
+    const errorMessage = `站点地图生成失败:\n` +
+      `错误信息: ${err.message}\n` +
+      `堆栈信息: ${err.stack}\n` +
+      `错误类型: ${err.name}`;
+    
+    console.error(errorMessage);
+    
+    return new Response(errorMessage, { 
+      status: 500,
+      headers: { 
+        'Content-Type': 'text/plain;charset=UTF-8',
+        'X-Error-Details': err.message
       }
-    );
+    });
   }
 }
