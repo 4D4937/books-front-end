@@ -12,32 +12,50 @@
     <script>
         async function loadSitemapUrls() {
             try {
-                // 首先获取主站点地图
+                const BATCH_SIZE = 10000; // 每批显示的URL数量
+                let allUrls = [];
+                let displayedCount = 0;
+                
+                // 获取主站点地图
                 const indexResponse = await fetch('/sitemap.xml');
                 const indexText = await indexResponse.text();
                 const parser = new DOMParser();
                 const indexDoc = parser.parseFromString(indexText, 'text/xml');
                 
-                // 获取所有子站点地图的URL
                 const sitemapUrls = Array.from(indexDoc.getElementsByTagName('loc')).map(loc => loc.textContent);
                 
-                let allUrls = [];
+                // 更新总数显示
+                const updateCount = () => {
+                    document.getElementById('count').textContent = `已加载 ${allUrls.length} 个URL，已显示 ${displayedCount} 个URL`;
+                };
                 
-                // 获取每个子站点地图中的URL
+                // 分批显示URL
+                const displayUrls = (urls, start) => {
+                    const end = Math.min(start + BATCH_SIZE, urls.length);
+                    const batch = urls.slice(start, end);
+                    const urlListHtml = batch.map(url => `<a href="${url}">${url}</a><br>`).join('');
+                    document.getElementById('urlList').insertAdjacentHTML('beforeend', urlListHtml);
+                    displayedCount = end;
+                    updateCount();
+                    
+                    // 如果还有未显示的URL，安排下一批显示
+                    if (end < urls.length) {
+                        setTimeout(() => displayUrls(urls, end), 100);
+                    }
+                };
+                
+                // 处理每个子站点地图
                 for (const sitemapUrl of sitemapUrls) {
                     const response = await fetch(sitemapUrl);
                     const text = await response.text();
                     const doc = parser.parseFromString(text, 'text/xml');
                     const urls = Array.from(doc.getElementsByTagName('loc')).map(loc => loc.textContent);
                     allUrls = allUrls.concat(urls);
+                    updateCount();
                 }
                 
-                // 显示总数
-                document.getElementById('count').textContent = `总URL数量: ${allUrls.length}`;
-                
-                // 显示所有URL
-                const urlListHtml = allUrls.map(url => `<a href="${url}">${url}</a><br>`).join('');
-                document.getElementById('urlList').innerHTML = urlListHtml;
+                // 开始分批显示URL
+                displayUrls(allUrls, 0);
                 
             } catch (error) {
                 console.error('加载站点地图失败:', error);
