@@ -112,7 +112,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="\${title}，作者：\${author}，出版社：\${publisher}，出版时间：\${publish_date}，ISBN：\${ISBN}，全书\${page_count}页。提供PDF电子书下载，支持文字检索，阅读体验好。">
+    <meta name="description" content="\${title}，作者：\${author}，出版社：\${publisher}，出版时间：\${publish_data}，ISBN：\${ISBN}，全书\${page_count}页。提供PDF电子书下载，支持文字检索，阅读体验好。">
     <title>\${title} pdf</title>
     ${INLINE_STYLES}
 	${HEADER_SCRIPT}
@@ -135,7 +135,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
                 </div>
                 <div class="info-item">
                     <div class="info-label">出版时间</div>
-                    <div class="info-value">\${publish_date}</div>
+                    <div class="info-value">\${publish_data}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">ISBN</div>
@@ -266,7 +266,7 @@ async function handleBookDetail(path, env) {
   try {
     // 移除了 printf 格式化 ISBN 的部分
     const stmt = env.BOOKS_D1.prepare(
-      `SELECT id, title, author, publisher, publish_date, 
+      `SELECT id, title, author, publisher, publish_data, 
       ISBN, page_count 
       FROM books WHERE id = ? LIMIT 1`
     );
