@@ -234,82 +234,6 @@ export async function onRequest(context) {
 }
 
 
-async function handleRandomBooks(env) {
-  try {
-    const totalBooks = parseInt(env.TOTAL_BOOKS_COUNT);
-    if (!totalBooks || isNaN(totalBooks)) {
-      throw new Error('书籍总数配置无效');
-    }
-
-    // 从索引中获取有效 ID 列表
-    const validIdsStr = await env.BOOKS_KV.get('valid_book_ids');
-    if (!validIdsStr) {
-      throw new Error('未找到有效书籍索引');
-    }
-
-    // 解析并随机选择 ID
-    const validIds = JSON.parse(validIdsStr);
-    const targetCount = 10;
-    const randomIds = [];
-    
-    // Fisher-Yates 洗牌算法选择随机 ID
-    const tempIds = [...validIds];
-    for (let i = 0; i < targetCount && tempIds.length > 0; i++) {
-      const randomIndex = Math.floor(Math.random() * tempIds.length);
-      randomIds.push(tempIds[randomIndex]);
-      tempIds[randomIndex] = tempIds[tempIds.length - 1];
-      tempIds.pop();
-    }
-
-    // 获取选中的书籍数据
-    const books = await Promise.all(
-      randomIds.map(async id => {
-        try {
-          const bookData = await env.BOOKS_KV.get(`book:${id}`);
-          return bookData ? JSON.parse(bookData) : null;
-        } catch (err) {
-          console.error(`获取书籍失败: ${id}`, err);
-          return null;
-        }
-      })
-    );
-
-    const validBooks = books
-      .filter(Boolean)
-      .map(book => ({
-        id: book.id,
-        title: book.title
-      }));
-
-    if (!validBooks.length) {
-      throw new Error('没有有效的书籍数据');
-    }
-
-    return new Response(
-      JSON.stringify(validBooks), 
-      {
-        headers: {
-          'content-type': 'application/json;charset=UTF-8',
-          'cache-control': 'public, max-age=300'
-        }
-      }
-    );
-  } catch (err) {
-    console.error('获取随机书籍失败:', err);
-    return new Response(
-      JSON.stringify({ 
-        error: '获取随机书籍失败',
-        message: err.message,
-        timestamp: new Date().toISOString()
-      }), 
-      {
-        status: 500,
-        headers: { 'content-type': 'application/json;charset=UTF-8' }
-      }
-    );
-  }
-}
-
 async function handleBookDetail(path, env) {
   const bookId = path.slice(1);
   if (!bookId) {
@@ -317,8 +241,9 @@ async function handleBookDetail(path, env) {
   }
 
   try {
+    // 移除 status 条件
     const stmt = env.BOOKS_D1.prepare(
-      `SELECT * FROM books WHERE id = ? AND status = 'active' LIMIT 1`
+      `SELECT * FROM books WHERE id = ? LIMIT 1`
     );
     const result = await stmt.bind(bookId).first();
     
