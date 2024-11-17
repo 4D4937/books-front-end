@@ -337,8 +337,9 @@ async function generateSitemap(env) {
     while (true) {
       const stmt = env.BOOKS_D1.prepare(
         'SELECT id FROM books LIMIT ? OFFSET ?'
-      );
-      const results = await stmt.all(PAGE_SIZE, offset);
+      ).bind(PAGE_SIZE, offset);
+      
+      const results = await stmt.all();
       const rows = results.results || results;
       
       if (!rows || rows.length === 0) break;
