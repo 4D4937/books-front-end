@@ -316,6 +316,7 @@ async function handleRandomBooks(env) {
   }
 }
 
+
 async function generateSitemap(env) {
   try {
     if (!env || !env.BOOKS_D1) {
@@ -328,34 +329,38 @@ async function generateSitemap(env) {
     const countResult = await testStmt.first();
     console.log('数据库记录总数:', countResult);
 
-    // 执行主查询
-    const stmt = env.BOOKS_D1.prepare('SELECT id FROM books');
-    const results = await stmt.all();
+    const PAGE_SIZE = 1000; // 每页查询1000条记录
+    let offset = 0;
+    let allRows = [];
     
-    // 详细记录查询结果
-    console.log('查询结果类型:', typeof results);
-    console.log('查询结果:', JSON.stringify(results));
-    
-    // 检查结果格式
-    if (!results) {
-      throw new Error('查询结果为空');
-    }
-    
-    // 获取实际的结果数组
-    const rows = results.results || results; // D1可能会将结果包装在results属性中
-    
-    if (!Array.isArray(rows)) {
-      throw new Error(`查询结果格式错误: ${typeof rows}`);
+    // 分页查询
+    while (true) {
+      const stmt = env.BOOKS_D1.prepare(
+        'SELECT id FROM books LIMIT ? OFFSET ?'
+      );
+      const results = await stmt.all(PAGE_SIZE, offset);
+      const rows = results.results || results;
+      
+      if (!rows || rows.length === 0) break;
+      
+      allRows = allRows.concat(rows);
+      offset += PAGE_SIZE;
+      
+      console.log(`已获取 ${allRows.length} 条记录`);
     }
 
-    console.log(`获取到 ${rows.length} 条记录`);
+    console.log(`总共获取到 ${allRows.length} 条记录`);
+
+    if (!Array.isArray(allRows)) {
+      throw new Error(`查询结果格式错误: ${typeof allRows}`);
+    }
 
     // 生成站点地图
     const baseUrl = 'https://liberpdf.top/';
     let sitemapContent = '<?xml version="1.0" encoding="UTF-8"?>\n';
     sitemapContent += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
     
-    for (const row of rows) {
+    for (const row of allRows) {
       if (row && row.id) {
         sitemapContent += `  <url>\n    <loc>${baseUrl}${row.id}</loc>\n  </url>\n`;
       }
