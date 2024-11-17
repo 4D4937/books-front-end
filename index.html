@@ -1,41 +1,39 @@
-<div class="container">
-    <!-- ... 现有内容 ... -->
-    
-    <div id="sitemapInfo">
-        <a href="/sitemap.xml">站点地图</a>
-        (<span id="urlCount">加载中...</span>)
-        <ul id="urlList"></ul>
-    </div>
-</div>
-
-<script>
-async function getUrlCount() {
-    try {
-        const response = await fetch('/sitemap.xml');
-        const text = await response.text();
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(text, 'text/xml');
-        const urls = xmlDoc.getElementsByTagName('loc');
-        
-        const urlCount = urls.length;
-        document.getElementById('urlCount').textContent = `${urlCount}个网址`;
-        
-        // 显示所有链接
-        const urlList = document.getElementById('urlList');
-        urlList.innerHTML = '';
-        Array.from(urls).forEach(url => {
-            const li = document.createElement('li');
-            const link = document.createElement('a');
-            link.href = url.textContent;
-            link.textContent = url.textContent;
-            li.appendChild(link);
-            urlList.appendChild(li);
-        });
-    } catch (error) {
-        document.getElementById('urlCount').textContent = '加载失败';
-        document.getElementById('urlList').innerHTML = '<li>链接加载失败</li>';
-    }
-}
-
-document.addEventListener('DOMContentLoaded', getUrlCount);
-</script>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>URL生成器</title>
+</head>
+<body>
+    <div id="result"></div>
+    <script>
+        window.onload = function() {
+            const rows = document.querySelectorAll('table tr');
+            const batchSize = 50000;
+            const totalRows = rows.length - 1;
+            const batches = Math.ceil(totalRows / batchSize);
+            
+            for(let batch = 0; batch < batches; batch++) {
+                let urls = [];
+                const start = batch * batchSize + 1;
+                const end = Math.min(start + batchSize, rows.length);
+                
+                for(let i = start; i < end; i++) {
+                    const idCell = rows[i].querySelector('td:nth-child(2)');
+                    if(idCell && idCell.textContent.trim()) {
+                        const id = idCell.textContent.trim();
+                        urls.push(`liberpdf.top/${id}`);
+                    }
+                }
+                
+                // 显示当前批次的URL
+                document.getElementById('result').innerHTML += `
+                    <h3>批次 ${batch + 1}/${batches} (${start}-${end-1})</h3>
+                    <pre>${urls.join('\n')}</pre>
+                    <hr>
+                `;
+            }
+        };
+    </script>
+</body>
+</html>
