@@ -187,18 +187,19 @@ export async function onRequest(context) {
   }
   
   // 站点地图路由
-  if (path === '/sitemap.xml') {
-    console.log('请求站点地图...');
-    try {
-      return await generateSitemap(env);
-    } catch (err) {
-      console.error('站点地图路由处理错误:', err);
-      return new Response('服务器内部错误', { 
-        status: 500,
-        headers: { 'Content-Type': 'text/plain;charset=UTF-8' }
-      });
-    }
-  }
+	// 在 onRequest 函数中修改站点地图路由处理
+	if (path.match(/^\/sitemap\d*\.xml$/)) {
+	  console.log('请求站点地图...');
+	  try {
+		return await generateSitemap(env, request);
+	  } catch (err) {
+		console.error('站点地图路由处理错误:', err);
+		return new Response('服务器内部错误', { 
+		  status: 500,
+		  headers: { 'Content-Type': 'text/plain;charset=UTF-8' }
+		});
+	  }
+	}
   // 首先处理特定的静态页面路由
   const staticPages = ['buy', 'about', 'contact']; // 添加其他静态页面
   const pageName = path.slice(1).split('.')[0]; // 移除开头的'/'和可能的文件扩展名
@@ -317,6 +318,7 @@ async function handleRandomBooks(env) {
 }
 
 
+
 async function generateSitemap(env) {
   try {
     if (!env || !env.BOOKS_D1) {
@@ -324,46 +326,69 @@ async function generateSitemap(env) {
       throw new Error('数据库配置错误');
     }
 
-    // 先测试数据库连接和结果格式
-    const testStmt = env.BOOKS_D1.prepare('SELECT COUNT(*) as count FROM books');
-    const countResult = await testStmt.first();
-    console.log('数据库记录总数:', countResult);
-
-    const PAGE_SIZE = 40000; // 每页查询1000条记录
-    let offset = 0;
-    let allRows = [];
+    // 获取请求的站点地图索引
+    const url = new URL(request.url);
+    const sitemapIndex = parseInt(url.searchParams.get('index') || '0');
     
-    // 分页查询
-    while (true) {
-      const stmt = env.BOOKS_D1.prepare(
-        'SELECT id FROM books LIMIT ? OFFSET ?'
-      ).bind(PAGE_SIZE, offset);
+    const URLS_PER_SITEMAP = 50000; // 增加到50000
+    const offset = sitemapIndex * URLS_PER_SITEMAP;
+    
+    // 查询总记录数
+    const countStmt = env.BOOKS_D1.prepare('SELECT COUNT(*) as count FROM books');
+    const { count } = await countStmt.first();
+    
+    // 如果请求的是站点地图索引文件
+    if (url.pathname === '/sitemap.xml') {
+      const sitemapCount = Math.ceil(count / URLS_PER_SITEMAP);
+      const baseUrl = 'https://liberpdf.top';
       
-      const results = await stmt.all();
-      const rows = results.results || results;
+      let indexContent = '<?xml version="1.0" encoding="UTF-8"?>\n';
+      indexContent += '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
       
-      if (!rows || rows.length === 0) break;
+      for (let i = 0; i < sitemapCount; i++) {
+        indexContent += `  <sitemap>\n`;
+        indexContent += `    <loc>${baseUrl}/sitemap${i}.xml</loc>\n`;
+        indexContent += `    <lastmod>${new Date().toISOString().split('T')[0]}</lastmod>\n`;
+        indexContent += `  </sitemap>\n`;
+      }
       
-      allRows = allRows.concat(rows);
-      offset += PAGE_SIZE;
+      indexContent += '</sitemapindex>';
       
-      console.log(`已获取 ${allRows.length} 条记录`);
+      return new Response(indexContent, {
+        headers: {
+          'Content-Type': 'application/xml;charset=UTF-8',
+          'Cache-Control': 'public, max-age=86400'
+        }
+      });
+    }
+    
+    // 查询当前分页的记录，使用50000作为限制
+    const stmt = env.BOOKS_D1.prepare(
+      'SELECT id FROM books LIMIT ? OFFSET ?'
+    ).bind(URLS_PER_SITEMAP, offset);
+    
+    const results = await stmt.all();
+    const rows = results.results || results;
+
+    if (!rows || rows.length === 0) {
+      return new Response('No data found', { 
+        status: 404,
+        headers: { 'Content-Type': 'text/plain;charset=UTF-8' }
+      });
     }
 
-    console.log(`总共获取到 ${allRows.length} 条记录`);
-
-    if (!Array.isArray(allRows)) {
-      throw new Error(`查询结果格式错误: ${typeof allRows}`);
-    }
-
-    // 生成站点地图
+    // 生成分页站点地图
     const baseUrl = 'https://liberpdf.top/';
     let sitemapContent = '<?xml version="1.0" encoding="UTF-8"?>\n';
     sitemapContent += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
     
-    for (const row of allRows) {
+    for (const row of rows) {
       if (row && row.id) {
-        sitemapContent += `  <url>\n    <loc>${baseUrl}${row.id}</loc>\n  </url>\n`;
+        sitemapContent += `  <url>\n`;
+        sitemapContent += `    <loc>${baseUrl}${row.id}</loc>\n`;
+        sitemapContent += `    <changefreq>monthly</changefreq>\n`;
+        sitemapContent += `    <priority>0.8</priority>\n`;
+        sitemapContent += `  </url>\n`;
       }
     }
     
@@ -377,20 +402,10 @@ async function generateSitemap(env) {
     });
 
   } catch (err) {
-    // 返回更详细的错误信息
-    const errorMessage = `站点地图生成失败:\n` +
-      `错误信息: ${err.message}\n` +
-      `堆栈信息: ${err.stack}\n` +
-      `错误类型: ${err.name}`;
-    
-    console.error(errorMessage);
-    
-    return new Response(errorMessage, { 
+    console.error('站点地图生成失败:', err);
+    return new Response(`站点地图生成失败: ${err.message}`, { 
       status: 500,
-      headers: { 
-        'Content-Type': 'text/plain;charset=UTF-8',
-        'X-Error-Details': err.message
-      }
+      headers: { 'Content-Type': 'text/plain;charset=UTF-8' }
     });
   }
 }
