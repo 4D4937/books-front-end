@@ -319,10 +319,9 @@ async function handleRandomBooks(env) {
 
 
 
-async function generateSitemap(env, request) {  // 添加 request 参数
+async function generateSitemap(env, request) {
   try {
     if (!env || !env.BOOKS_D1) {
-      console.error('数据库环境变量未定义');
       throw new Error('数据库配置错误');
     }
 
@@ -334,39 +333,28 @@ async function generateSitemap(env, request) {  // 添加 request 参数
     const { count } = await countStmt.first();
     
     const URLS_PER_SITEMAP = 50000;
+    const baseUrl = 'https://liberpdf.top';
     
-    // 如果请求的是主站点地图索引文件
+    // 处理主站点地图索引
     if (path === '/sitemap.xml') {
       const sitemapCount = Math.ceil(count / URLS_PER_SITEMAP);
-      const baseUrl = 'https://liberpdf.top';
-      
       let indexContent = '<?xml version="1.0" encoding="UTF-8"?>\n';
       indexContent += '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
       
       for (let i = 0; i < sitemapCount; i++) {
-        indexContent += `  <sitemap>\n`;
-        indexContent += `    <loc>${baseUrl}/sitemap${i}.xml</loc>\n`;
-        indexContent += `    <lastmod>${new Date().toISOString().split('T')[0]}</lastmod>\n`;
-        indexContent += `  </sitemap>\n`;
+        indexContent += `  <sitemap>\n    <loc>${baseUrl}/sitemap${i}.xml</loc>\n  </sitemap>\n`;
       }
       
       indexContent += '</sitemapindex>';
-      
       return new Response(indexContent, {
-        headers: {
-          'Content-Type': 'application/xml;charset=UTF-8',
-          'Cache-Control': 'public, max-age=86400'
-        }
+        headers: { 'Content-Type': 'application/xml;charset=UTF-8' }
       });
     }
     
     // 处理分页站点地图
     const matches = path.match(/\/sitemap(\d+)\.xml/);
     if (!matches) {
-      return new Response('Invalid sitemap URL', { 
-        status: 400,
-        headers: { 'Content-Type': 'text/plain;charset=UTF-8' }
-      });
+      return new Response('Invalid sitemap URL', { status: 400 });
     }
     
     const sitemapIndex = parseInt(matches[1]);
@@ -381,41 +369,27 @@ async function generateSitemap(env, request) {  // 添加 request 参数
     const rows = results.results || results;
 
     if (!rows || rows.length === 0) {
-      return new Response('No data found', { 
-        status: 404,
-        headers: { 'Content-Type': 'text/plain;charset=UTF-8' }
-      });
+      return new Response('No data found', { status: 404 });
     }
 
-    // 生成分页站点地图
-    const baseUrl = 'https://liberpdf.top/';
+    // 生成简化的分页站点地图
     let sitemapContent = '<?xml version="1.0" encoding="UTF-8"?>\n';
     sitemapContent += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
     
     for (const row of rows) {
       if (row && row.id) {
-        sitemapContent += `  <url>\n`;
-        sitemapContent += `    <loc>${baseUrl}${row.id}</loc>\n`;
-        sitemapContent += `    <changefreq>monthly</changefreq>\n`;
-        sitemapContent += `    <priority>0.8</priority>\n`;
-        sitemapContent += `  </url>\n`;
+        sitemapContent += `  <url>\n    <loc>${baseUrl}/${row.id}</loc>\n  </url>\n`;
       }
     }
     
     sitemapContent += '</urlset>';
 
     return new Response(sitemapContent, {
-      headers: {
-        'Content-Type': 'application/xml;charset=UTF-8',
-        'Cache-Control': 'public, max-age=86400'
-      }
+      headers: { 'Content-Type': 'application/xml;charset=UTF-8' }
     });
 
   } catch (err) {
     console.error('站点地图生成失败:', err);
-    return new Response(`站点地图生成失败: ${err.message}`, { 
-      status: 500,
-      headers: { 'Content-Type': 'text/plain;charset=UTF-8' }
-    });
+    return new Response(`站点地图生成失败: ${err.message}`, { status: 500 });
   }
 }
