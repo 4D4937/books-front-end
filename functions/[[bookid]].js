@@ -242,40 +242,51 @@ async function handleRandomBooks(env) {
       throw new Error('书籍总数配置无效');
     }
 
+    // 设定 ID 范围
+    const MIN_BOOK_ID = 1;  // 最小 ID
+    const MAX_BOOK_ID = 9999999999;  // 最大 ID
     const targetCount = 10;
+    const maxAttempts = 2000;  // 最大尝试次数，避免无限循环
     
-    // 先获取所有的 keys
-    const { keys } = await env.BOOKS_KV.list();
-    console.log('获取到的总键数:', keys.length);
+    const foundBooks = [];
+    let attempts = 0;
 
-    // 随机选择 10 个 key
-    const randomKeys = keys
-      .sort(() => Math.random() - 0.5)
-      .slice(0, targetCount);
-    
-    console.log('随机选择的keys:', randomKeys.map(k => k.name));
+    while (foundBooks.length < targetCount && attempts < maxAttempts) {
+      // 生成一批随机 ID
+      const batchSize = targetCount - foundBooks.length;
+      const randomIds = new Set(); // 使用 Set 避免重复
+      
+      while (randomIds.size < batchSize) {
+        const randomId = Math.floor(Math.random() * (MAX_BOOK_ID - MIN_BOOK_ID + 1)) + MIN_BOOK_ID;
+        randomIds.add(randomId);
+      }
 
-    const randomBooks = await Promise.all(
-      randomKeys.map(async key => {
-        try {
-          const bookData = await env.BOOKS_KV.get(key.name);
-          if (!bookData) {
-            console.log(`未找到书籍数据: ${key.name}`);
+      // 并行获取这批书籍数据
+      const batchResults = await Promise.all(
+        Array.from(randomIds).map(async id => {
+          try {
+            const key = `book:${id}`;
+            const bookData = await env.BOOKS_KV.get(key);
+            if (!bookData) return null;
+            
+            const parsed = JSON.parse(bookData);
+            console.log(`成功获取书籍: ${key}, 标题: ${parsed.title}`);
+            return parsed;
+          } catch (err) {
+            console.error(`处理书籍数据失败: book:${id}`, err.message);
             return null;
           }
-          
-          const parsed = JSON.parse(bookData);
-          console.log(`成功获取书籍: ${key.name}, 标题: ${parsed.title}`);
-          return parsed;
-        } catch (err) {
-          console.error(`处理书籍数据失败: ${key.name}`, err.message);
-          return null;
-        }
-      })
-    );
+        })
+      );
 
-    const validBooks = randomBooks
-      .filter(Boolean)
+      // 添加有效的书籍到结果集
+      foundBooks.push(...batchResults.filter(Boolean));
+      attempts++;
+    }
+
+    // 确保只返回需要的数量
+    const validBooks = foundBooks
+      .slice(0, targetCount)
       .map(book => ({
         id: book.id,
         title: book.title
@@ -309,6 +320,7 @@ async function handleRandomBooks(env) {
     );
   }
 }
+
 // 处理书籍详情请求
 async function handleBookDetail(path, env) {
   const bookId = path.slice(1);
