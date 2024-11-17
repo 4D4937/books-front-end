@@ -176,98 +176,84 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
 </body>
 </html>`;
 
+
 export async function onRequest(context) {
   const { request, env } = context;
   const url = new URL(request.url);
   const path = url.pathname;
   
-  // 首页路由处理
-  if (path === '/' || path === '/index.html') {
-    return await context.next();
-  }
+  // 路由处理优先级：
+  // 1. 首页路由
+  // 2. 站点地图
+  // 3. 静态页面
+  // 4. robots.txt
+  // 5. 静态资源文件
+  // 6. API 接口
+  // 7. 书籍详情页
   
-  // 站点地图路由
-	// 在 onRequest 函数中修改站点地图路由处理
-	if (path.match(/^\/sitemap\d*\.xml$/)) {
-	  console.log('请求站点地图...');
-	  try {
-		return await generateSitemap(env, request);  // 传入 request 参数
-	  } catch (err) {
-		console.error('站点地图路由处理错误:', err);
-		return new Response('服务器内部错误', { 
-		  status: 500,
-		  headers: { 'Content-Type': 'text/plain;charset=UTF-8' }
-		});
-	  }
-	}
-  // 首先处理特定的静态页面路由
-  const staticPages = ['buy', 'about', 'contact']; // 添加其他静态页面
-  const pageName = path.slice(1).split('.')[0]; // 移除开头的'/'和可能的文件扩展名
-  
-  if (staticPages.includes(pageName)) {
-    try {
-      // 尝试获取对应的 html 文件
+  try {
+    // 1. 首页路由处理 ('/index.html' 或 '/')
+    if (path === '/' || path === '/index.html') {
+      return await context.next();
+    }
+    
+    // 2. 站点地图路由处理 (匹配 sitemap.xml 或 sitemap1.xml 等格式)
+    if (path.match(/^\/sitemap\d*\.xml$/)) {
+      console.log('正在生成站点地图...');
+      return await generateSitemap(env, request);
+    }
+    
+    // 3. 静态页面路由处理
+    const staticPages = ['buy', 'about', 'contact']; // 可配置的静态页面列表
+    const pageName = path.slice(1).split('.')[0]; // 提取页面名称（移除'/'和文件扩展名）
+    
+    if (staticPages.includes(pageName)) {
       const response = await context.next();
-      if (response) {
-        return response;
-      }
-      return new Response("页面未找到", { 
-        status: 404,
-        headers: { 'content-type': 'text/plain;charset=UTF-8' }
-      });
-    } catch (err) {
-      console.error('静态页面处理错误:', err);
-      return new Response("服务器错误", { 
-        status: 500,
-        headers: { 'content-type': 'text/plain;charset=UTF-8' }
+      if (response) return response;
+      throw new Error('静态页面不存在');
+    }
+    
+    // 4. robots.txt 处理
+    if (path === '/robots.txt') {
+      return new Response(
+        `User-agent: *
+        Allow: /
+        Sitemap: https://liberpdf.top/sitemap.xml`, {
+        headers: { 
+          'content-type': 'text/plain;charset=UTF-8',
+          'Cache-Control': 'public, max-age=86400' // 24小时缓存
+        }
       });
     }
+    
+    // 5. 静态资源文件处理 (.html, .css, .js)
+    if (path.match(/\.(html|css|js)$/)) {
+      const response = await context.next();
+      if (response) return response;
+      throw new Error('静态资源文件不存在');
+    }
+    
+    // 6. API 路由处理
+    if (path === '/api/random-books') {
+      return await handleRandomBooks(env);
+    }
+    
+    // 7. 书籍详情页处理（默认路由）
+    return await handleBookDetail(path, env);
+    
+  } catch (error) {
+    // 统一错误处理
+    console.error(`路由处理错误: ${path}`, error);
+    
+    // 根据错误类型返回适当的状态码
+    const status = error.message.includes('不存在') ? 404 : 500;
+    const message = status === 404 ? '页面未找到' : '服务器内部错误';
+    
+    return new Response(message, {
+      status,
+      headers: { 'content-type': 'text/plain;charset=UTF-8' }
+    });
   }
-  
-	// 在 onRequest 函数中添加 robots.txt 的特殊处理
-	if (path === '/robots.txt') {
-	  const robotsTxt = `User-agent: *
-	Allow: /
-	Sitemap: https://liberpdf.top/sitemap.xml`;
-
-	  return new Response(robotsTxt, {
-		headers: { 
-		  'content-type': 'text/plain;charset=UTF-8',
-		  'Cache-Control': 'public, max-age=86400'  // 缓存24小时
-		}
-	  });
-	}
-  
-  // 静态文件处理
-	if (path.match(/\.(html|css|js)$/)) {
-	  try {
-		// 确保返回一个有效的 Response 对象
-		const response = await context.next();
-		if (response) {
-		  return response;
-		}
-		
-		// 如果找不到文件，返回 404
-		return new Response("文件未找到", { 
-		  status: 404,
-		  headers: { 'content-type': 'text/plain;charset=UTF-8' }
-		});
-	  } catch (err) {
-		console.error('静态文件处理错误:', err);
-		return new Response(`静态文件处理错误: ${err.message}`, { 
-		  status: 500,
-		  headers: { 'content-type': 'text/plain;charset=UTF-8' }
-		});
-	  }
-	}
-
-  // API 路由处理
-  if (path === '/api/random-books') {
-    return await handleRandomBooks(env);
-  }
-
-  // 书籍详情处理
-  return await handleBookDetail(path, env);
 }
 
 
