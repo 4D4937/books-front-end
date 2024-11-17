@@ -224,6 +224,20 @@ export async function onRequest(context) {
     }
   }
   
+	// 在 onRequest 函数中添加 robots.txt 的特殊处理
+	if (path === '/robots.txt') {
+	  const robotsTxt = `User-agent: *
+	Allow: /
+	Sitemap: https://liberpdf.top/sitemap.xml`;
+
+	  return new Response(robotsTxt, {
+		headers: { 
+		  'content-type': 'text/plain;charset=UTF-8',
+		  'Cache-Control': 'public, max-age=86400'  // 缓存24小时
+		}
+	  });
+	}
+  
   // 静态文件处理
 	if (path.match(/\.(html|css|js)$/)) {
 	  try {
