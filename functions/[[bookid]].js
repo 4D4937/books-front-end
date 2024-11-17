@@ -191,7 +191,7 @@ export async function onRequest(context) {
 	if (path.match(/^\/sitemap\d*\.xml$/)) {
 	  console.log('请求站点地图...');
 	  try {
-		return await generateSitemap(env, request);
+		return await generateSitemap(env, request);  // 传入 request 参数
 	  } catch (err) {
 		console.error('站点地图路由处理错误:', err);
 		return new Response('服务器内部错误', { 
@@ -319,26 +319,24 @@ async function handleRandomBooks(env) {
 
 
 
-async function generateSitemap(env) {
+async function generateSitemap(env, request) {  // 添加 request 参数
   try {
     if (!env || !env.BOOKS_D1) {
       console.error('数据库环境变量未定义');
       throw new Error('数据库配置错误');
     }
 
-    // 获取请求的站点地图索引
     const url = new URL(request.url);
-    const sitemapIndex = parseInt(url.searchParams.get('index') || '0');
-    
-    const URLS_PER_SITEMAP = 50000; // 增加到50000
-    const offset = sitemapIndex * URLS_PER_SITEMAP;
+    const path = url.pathname;
     
     // 查询总记录数
     const countStmt = env.BOOKS_D1.prepare('SELECT COUNT(*) as count FROM books');
     const { count } = await countStmt.first();
     
-    // 如果请求的是站点地图索引文件
-    if (url.pathname === '/sitemap.xml') {
+    const URLS_PER_SITEMAP = 50000;
+    
+    // 如果请求的是主站点地图索引文件
+    if (path === '/sitemap.xml') {
       const sitemapCount = Math.ceil(count / URLS_PER_SITEMAP);
       const baseUrl = 'https://liberpdf.top';
       
@@ -362,7 +360,19 @@ async function generateSitemap(env) {
       });
     }
     
-    // 查询当前分页的记录，使用50000作为限制
+    // 处理分页站点地图
+    const matches = path.match(/\/sitemap(\d+)\.xml/);
+    if (!matches) {
+      return new Response('Invalid sitemap URL', { 
+        status: 400,
+        headers: { 'Content-Type': 'text/plain;charset=UTF-8' }
+      });
+    }
+    
+    const sitemapIndex = parseInt(matches[1]);
+    const offset = sitemapIndex * URLS_PER_SITEMAP;
+    
+    // 查询当前分页的记录
     const stmt = env.BOOKS_D1.prepare(
       'SELECT id FROM books LIMIT ? OFFSET ?'
     ).bind(URLS_PER_SITEMAP, offset);
