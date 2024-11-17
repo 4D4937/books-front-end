@@ -250,7 +250,6 @@ async function handleBookDetail(path, env) {
   }
 
   try {
-    // 移除 status 条件
     const stmt = env.BOOKS_D1.prepare(
       `SELECT * FROM books WHERE id = ? LIMIT 1`
     );
@@ -260,7 +259,16 @@ async function handleBookDetail(path, env) {
       return new Response("未找到该书籍", { status: 404 });
     }
 
-    const renderedHtml = HTML_TEMPLATE.replace(/\${(\w+)}/g, (_, key) => result[key] || '');
+    // 处理 ISBN 格式化
+    const formattedData = {
+      ...result,
+      ISBN: formatISBN(result.ISBN)
+    };
+
+    // 使用格式化后的数据渲染模板
+    const renderedHtml = HTML_TEMPLATE.replace(/\${(\w+)}/g, (_, key) => {
+      return formattedData[key] || '';
+    });
 
     return new Response(renderedHtml, {
       headers: { 'content-type': 'text/html;charset=UTF-8' }
