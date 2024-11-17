@@ -78,21 +78,18 @@ const RELATED_BOOKS_SCRIPT = [
     '    relatedList.innerHTML = \'<div class="loading-text">正在加载推荐书籍...</div>\';',
     '    ',
     '    try {',
-    '        const response = await fetch("/api/random-books", {',
-    '            cache: "no-store",',
-    '            headers: {',
-    '                "Cache-Control": "no-cache",',
-    '                "Pragma": "no-cache"',
-    '            }',
-    '        });',
+    '        const response = await fetch("/api/random-books");',
     '        if (!response.ok) {',
-    '            throw new Error("获取随机书籍失败");',
+    '            throw new Error(`HTTP error! status: ${response.status}`);',
     '        }',
     '        ',
     '        const books = await response.json();',
+    '        if (!Array.isArray(books) || books.length === 0) {',
+    '            throw new Error("没有获取到推荐书籍数据");',
+    '        }',
     '        ',
     '        relatedList.innerHTML = books.map(book => ',
-    '            \'<a href="/\' + book.id + \'" class="related-item">\' + book.title + \'</a>\'',
+    '            `<a href="/${book.id}" class="related-item">${book.title}</a>`',
     '        ).join("");',
     '    } catch (error) {',
     '        console.error("加载推荐书籍失败:", error);',
@@ -276,9 +273,9 @@ async function handleRandomBooks(env) {
       LIMIT 10
     `);
     
-    const books = await stmt.all();
-    
-    return new Response(JSON.stringify(books.results), {
+    const result = await stmt.all();
+    // 直接返回 results 数组，不需要 .results
+    return new Response(JSON.stringify(result), {
       headers: {
         'content-type': 'application/json;charset=UTF-8',
         'Cache-Control': 'no-store, no-cache, must-revalidate',
