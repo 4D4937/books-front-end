@@ -104,16 +104,25 @@ const RELATED_BOOKS_SCRIPT = [
     '</script>'
 ].join('\n');
 
-// 内联模板
+// ISBN 格式化函数
+function formatISBN(isbn) {
+    if (typeof isbn === 'number') {
+        // 处理科学计数法格式
+        return isbn.toFixed(0);
+    }
+    return isbn;
+}
+
+// HTML 模板
 const HTML_TEMPLATE = `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="\${title}，作者：\${author}，出版社：\${publisher}，出版时间：\${publish_date}，ISBN：\${ISBN}，全书\${page_count}页。提供PDF电子书下载，支持文字检索，阅读体验好。">
+    <meta name="description" content="\${title}，作者：\${author}，出版社：\${publisher}，出版时间：\${publish_date}，ISBN：\${formatISBN(ISBN)}，全书\${page_count}页。提供PDF电子书下载，支持文字检索，阅读体验好。">
     <title>\${title} pdf</title>
     ${INLINE_STYLES}
-	${HEADER_SCRIPT}
+    ${HEADER_SCRIPT}
 </head>
 <body>
     <site-header></site-header>
@@ -137,7 +146,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
                 </div>
                 <div class="info-item">
                     <div class="info-label">ISBN</div>
-                    <div class="info-value">\${ISBN}</div>
+                    <div class="info-value">\${formatISBN(ISBN)}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">页数</div>
