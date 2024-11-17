@@ -266,3 +266,32 @@ async function handleBookDetail(path, env) {
     });
   }
 }
+
+async function handleRandomBooks(env) {
+  try {
+    const stmt = env.BOOKS_D1.prepare(`
+      SELECT id, title 
+      FROM books 
+      ORDER BY RANDOM() 
+      LIMIT 10
+    `);
+    
+    const books = await stmt.all();
+    
+    return new Response(JSON.stringify(books.results), {
+      headers: {
+        'content-type': 'application/json;charset=UTF-8',
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Pragma': 'no-cache'
+      }
+    });
+  } catch (err) {
+    console.error('获取随机书籍失败:', err);
+    return new Response(JSON.stringify({ error: '获取随机书籍失败' }), {
+      status: 500,
+      headers: { 
+        'content-type': 'application/json;charset=UTF-8'
+      }
+    });
+  }
+}
