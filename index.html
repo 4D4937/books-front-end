@@ -1,39 +1,51 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>URL生成器</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sitemap URLs</title>
 </head>
 <body>
-    <div id="result"></div>
+    <div id="count"></div>
+    <div id="urlList"></div>
+
     <script>
-        window.onload = function() {
-            const rows = document.querySelectorAll('table tr');
-            const batchSize = 50000;
-            const totalRows = rows.length - 1;
-            const batches = Math.ceil(totalRows / batchSize);
-            
-            for(let batch = 0; batch < batches; batch++) {
-                let urls = [];
-                const start = batch * batchSize + 1;
-                const end = Math.min(start + batchSize, rows.length);
+        async function loadSitemapUrls() {
+            try {
+                // 首先获取主站点地图
+                const indexResponse = await fetch('/sitemap.xml');
+                const indexText = await indexResponse.text();
+                const parser = new DOMParser();
+                const indexDoc = parser.parseFromString(indexText, 'text/xml');
                 
-                for(let i = start; i < end; i++) {
-                    const idCell = rows[i].querySelector('td:nth-child(2)');
-                    if(idCell && idCell.textContent.trim()) {
-                        const id = idCell.textContent.trim();
-                        urls.push(`liberpdf.top/${id}`);
-                    }
+                // 获取所有子站点地图的URL
+                const sitemapUrls = Array.from(indexDoc.getElementsByTagName('loc')).map(loc => loc.textContent);
+                
+                let allUrls = [];
+                
+                // 获取每个子站点地图中的URL
+                for (const sitemapUrl of sitemapUrls) {
+                    const response = await fetch(sitemapUrl);
+                    const text = await response.text();
+                    const doc = parser.parseFromString(text, 'text/xml');
+                    const urls = Array.from(doc.getElementsByTagName('loc')).map(loc => loc.textContent);
+                    allUrls = allUrls.concat(urls);
                 }
                 
-                // 显示当前批次的URL
-                document.getElementById('result').innerHTML += `
-                    <h3>批次 ${batch + 1}/${batches} (${start}-${end-1})</h3>
-                    <pre>${urls.join('\n')}</pre>
-                    <hr>
-                `;
+                // 显示总数
+                document.getElementById('count').textContent = `总URL数量: ${allUrls.length}`;
+                
+                // 显示所有URL
+                const urlListHtml = allUrls.map(url => `<a href="${url}">${url}</a><br>`).join('');
+                document.getElementById('urlList').innerHTML = urlListHtml;
+                
+            } catch (error) {
+                console.error('加载站点地图失败:', error);
+                document.getElementById('urlList').textContent = '加载失败: ' + error.message;
             }
-        };
+        }
+
+        loadSitemapUrls();
     </script>
 </body>
 </html>
