@@ -181,6 +181,11 @@ export async function onRequest(context) {
   const url = new URL(request.url);
   const path = url.pathname;
   
+  // 首页路由处理
+  if (path === '/' || path === '/index.html') {
+    return await context.next();
+  }
+  
   // 站点地图路由
   if (path === '/sitemap.xml') {
     console.log('请求站点地图...');
