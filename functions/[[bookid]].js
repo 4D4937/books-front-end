@@ -166,8 +166,6 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
             <div class="related-books">
                 <h2 class="related-title">相关书籍推荐</h2>
                 <div id="relatedList" class="related-list">
-                    <div class="loading-text">正在加载推荐书籍...</div>
-					<!-- 添加服务端渲染的初始推荐列表 -->
                     \${initial_related_books}
                 </div>
             </div>
@@ -262,7 +260,7 @@ export async function onRequest(context) {
 
 
 async function handleBookDetail(path, env) {
-    const bookId = path.slice(1);
+    const bookId = path.slice(1); // 提取书籍 ID
     if (!bookId) {
         return new Response("请提供书籍ID", { status: 400 });
     }
@@ -275,7 +273,7 @@ async function handleBookDetail(path, env) {
             FROM books WHERE id = ? LIMIT 1`
         );
         const book = await bookStmt.bind(bookId).first();
-        
+
         if (!book) {
             return new Response("未找到该书籍", { status: 404 });
         }
@@ -284,7 +282,7 @@ async function handleBookDetail(path, env) {
         const relatedStmt = env.BOOKS_D1.prepare(`
             SELECT id, title 
             FROM books 
-            WHERE id != ?
+            WHERE id != ? 
             ORDER BY RANDOM() 
             LIMIT 10
         `);
@@ -295,8 +293,10 @@ async function handleBookDetail(path, env) {
             `<a href="/${book.id}" class="related-item">${book.title}</a>`
         ).join("");
 
-        // 替换模板变量
+        // 将相关书籍的HTML嵌入到模板中
         book.initial_related_books = relatedBooksHtml;
+
+        // 渲染 HTML 模板，并替换变量
         const renderedHtml = HTML_TEMPLATE.replace(/\${(\w+)}/g, (_, key) => book[key] || '');
 
         return new Response(renderedHtml, {
@@ -309,6 +309,7 @@ async function handleBookDetail(path, env) {
         });
     }
 }
+
 
 async function handleRandomBooks(env) {
   try {
