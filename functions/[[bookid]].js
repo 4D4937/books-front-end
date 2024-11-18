@@ -167,6 +167,8 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
                 <h2 class="related-title">相关书籍推荐</h2>
                 <div id="relatedList" class="related-list">
                     <div class="loading-text">正在加载推荐书籍...</div>
+					<!-- 添加服务端渲染的初始推荐列表 -->
+                    \${initial_related_books}
                 </div>
             </div>
         </div>
@@ -214,17 +216,19 @@ export async function onRequest(context) {
     }
     
     // 4. robots.txt 处理
-    if (path === '/robots.txt') {
-      return new Response(
-        `User-agent: *
-        Allow: /
-        Sitemap: https://liberpdf.top/sitemap.xml`, {
-        headers: { 
-          'content-type': 'text/plain;charset=UTF-8',
-          'Cache-Control': 'public, max-age=86400' // 24小时缓存
-        }
-      });
-    }
+	if (path === '/robots.txt') {
+	  return new Response(
+		`User-agent: *
+	Allow: /
+	Sitemap: https://liberpdf.top/sitemap.xml
+	Crawl-delay: 1`, {
+		headers: { 
+		  'content-type': 'text/plain;charset=UTF-8',
+		  'Cache-Control': 'public, max-age=86400',
+		  'X-Robots-Tag': 'all' // 添加这个头部
+		}
+	  });
+	}
     
     // 5. 静态资源文件处理 (.html, .css, .js)
     if (path.match(/\.(html|css|js)$/)) {
@@ -258,34 +262,52 @@ export async function onRequest(context) {
 
 
 async function handleBookDetail(path, env) {
-  const bookId = path.slice(1);
-  if (!bookId) {
-    return new Response("请提供书籍ID", { status: 400 });
-  }
-
-  try {
-    const stmt = env.BOOKS_D1.prepare(
-      `SELECT id, title, author, publisher, publish_data, 
-      ISBN, CAST(page_count AS INTEGER) as page_count 
-      FROM books WHERE id = ? LIMIT 1`
-    );
-    const result = await stmt.bind(bookId).first();
-    
-    if (!result) {
-      return new Response("未找到该书籍", { status: 404 });
+    const bookId = path.slice(1);
+    if (!bookId) {
+        return new Response("请提供书籍ID", { status: 400 });
     }
 
-    const renderedHtml = HTML_TEMPLATE.replace(/\${(\w+)}/g, (_, key) => result[key] || '');
+    try {
+        // 获取当前书籍信息
+        const bookStmt = env.BOOKS_D1.prepare(
+            `SELECT id, title, author, publisher, publish_data, 
+            ISBN, CAST(page_count AS INTEGER) as page_count 
+            FROM books WHERE id = ? LIMIT 1`
+        );
+        const book = await bookStmt.bind(bookId).first();
+        
+        if (!book) {
+            return new Response("未找到该书籍", { status: 404 });
+        }
 
-    return new Response(renderedHtml, {
-      headers: { 'content-type': 'text/html;charset=UTF-8' }
-    });
-  } catch (err) {
-    return new Response(`服务器错误: ${err.message}`, { 
-      status: 500,
-      headers: { 'content-type': 'text/plain;charset=UTF-8' }
-    });
-  }
+        // 获取随机推荐书籍列表
+        const relatedStmt = env.BOOKS_D1.prepare(`
+            SELECT id, title 
+            FROM books 
+            WHERE id != ?
+            ORDER BY RANDOM() 
+            LIMIT 10
+        `);
+        const relatedBooks = await relatedStmt.bind(bookId).all();
+
+        // 生成相关书籍的HTML
+        const relatedBooksHtml = relatedBooks.results.map(book => 
+            `<a href="/${book.id}" class="related-item">${book.title}</a>`
+        ).join("");
+
+        // 替换模板变量
+        book.initial_related_books = relatedBooksHtml;
+        const renderedHtml = HTML_TEMPLATE.replace(/\${(\w+)}/g, (_, key) => book[key] || '');
+
+        return new Response(renderedHtml, {
+            headers: { 'content-type': 'text/html;charset=UTF-8' }
+        });
+    } catch (err) {
+        return new Response(`服务器错误: ${err.message}`, { 
+            status: 500,
+            headers: { 'content-type': 'text/plain;charset=UTF-8' }
+        });
+    }
 }
 
 async function handleRandomBooks(env) {
@@ -330,7 +352,13 @@ async function generateSitemap(env, request) {
     if (!env?.BOOKS_D1) {
       throw new Error('数据库配置错误：缺少BOOKS_D1环境变量');
     }
-
+	// 为站点地图添加适当的响应头
+    const sitemapHeaders = {
+      'Content-Type': 'application/xml;charset=UTF-8',
+      'X-Robots-Tag': 'all',
+      'Cache-Control': 'public, max-age=3600', // 1小时缓存
+      'X-Content-Type-Options': 'nosniff'
+    };
     // 配置常量
     const URLS_PER_SITEMAP = 50000; // 每个站点地图包含的URL数量
     const baseUrl = 'https://liberpdf.top';
@@ -354,7 +382,7 @@ async function generateSitemap(env, request) {
       
       indexContent += '</sitemapindex>';
       return new Response(indexContent, {
-        headers: { 'Content-Type': 'application/xml;charset=UTF-8' }
+        headers: sitemapHeaders
       });
     }
     
@@ -395,7 +423,7 @@ async function generateSitemap(env, request) {
     sitemapContent += '</urlset>';
 
     return new Response(sitemapContent, {
-      headers: { 'Content-Type': 'application/xml;charset=UTF-8' }
+      headers: sitemapHeaders
     });
 
   } catch (err) {
