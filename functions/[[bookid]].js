@@ -182,45 +182,33 @@ export async function onRequest(context) {
   const { request, env } = context;
   const url = new URL(request.url);
   const path = url.pathname;
-  
-  // 路由处理优先级：
-  // 1. 首页路由
-  // 2. 站点地图
-  // 3. 静态页面
-  // 4. robots.txt
-  // 5. 静态资源文件
-  // 6. API 接口
-  // 7. 书籍详情页
-  
+
   try {
-    // 1. 首页路由处理 ('/index.html' 或 '/')
+    // 1. 首页路由处理
     if (path === '/' || path === '/index.html') {
       return await context.next();
     }
     
-    // 2. 站点地图路由处理 (匹配 sitemap.xml 或 sitemap1.xml 等格式)
+    // 2. 站点地图路由处理
     if (path.match(/^\/sitemap\d*\.xml$/)) {
       console.log('正在生成站点地图...');
       return await generateSitemap(env, request);
     }
-	
-  try {
-    // 处理请求 `/api/sitemaps`，返回所有站点地图分页的下载链接
+
+    // 处理请求 /api/sitemaps
     if (path === '/api/sitemaps') {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 50000); // 设置超时为 50秒
+      const timeoutId = setTimeout(() => controller.abort(), 50000);
 
       try {
-        // 获取总记录数并计算分页
         const sitemapLinks = await generateSitemapLinks(env, controller.signal);
         clearTimeout(timeoutId);
         
-        // 返回一个包含所有分页站点地图的下载链接
         return new Response(JSON.stringify({ sitemaps: sitemapLinks }), {
           headers: {
             'Content-Type': 'application/json;charset=UTF-8',
-            'Cache-Control': 'no-store',
-          },
+            'Cache-Control': 'no-store'
+          }
         });
       } catch (err) {
         clearTimeout(timeoutId);
@@ -231,12 +219,12 @@ export async function onRequest(context) {
       }
     }
 
-    // 处理分页站点地图请求：`/api/sitemap/{index}`
+    // 处理分页站点地图请求
     const matches = path.match(/^\/api\/sitemap\/(\d+)$/);
     if (matches) {
       const sitemapIndex = parseInt(matches[1]);
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 50000); // 设置超时为 50秒
+      const timeoutId = setTimeout(() => controller.abort(), 50000);
 
       try {
         const response = await generateSitemap(env, controller.signal, sitemapIndex);
@@ -250,10 +238,10 @@ export async function onRequest(context) {
         throw err;
       }
     }
-    
+
     // 3. 静态页面路由处理
-    const staticPages = ['buy', 'about', 'contact']; // 可配置的静态页面列表
-    const pageName = path.slice(1).split('.')[0]; // 提取页面名称（移除'/'和文件扩展名）
+    const staticPages = ['buy', 'about', 'contact'];
+    const pageName = path.slice(1).split('.')[0];
     
     if (staticPages.includes(pageName)) {
       const response = await context.next();
@@ -262,21 +250,21 @@ export async function onRequest(context) {
     }
     
     // 4. robots.txt 处理
-	if (path === '/robots.txt') {
-	  return new Response(
-		`User-agent: *
-	Allow: /
-	Sitemap: https://liberpdf.top/sitemap.xml
-	Crawl-delay: 1`, {
-		headers: { 
-		  'content-type': 'text/plain;charset=UTF-8',
-		  'Cache-Control': 'public, max-age=86400',
-		  'X-Robots-Tag': 'all' // 添加这个头部
-		}
-	  });
-	}
+    if (path === '/robots.txt') {
+      return new Response(
+        `User-agent: *
+		Allow: /
+		Sitemap: https://liberpdf.top/sitemap.xml
+		Crawl-delay: 1`, {
+        headers: { 
+          'content-type': 'text/plain;charset=UTF-8',
+          'Cache-Control': 'public, max-age=86400',
+          'X-Robots-Tag': 'all'
+        }
+      });
+    }
     
-    // 5. 静态资源文件处理 (.html, .css, .js)
+    // 5. 静态资源文件处理
     if (path.match(/\.(html|css|js)$/)) {
       const response = await context.next();
       if (response) return response;
@@ -288,14 +276,12 @@ export async function onRequest(context) {
       return await handleRandomBooks(env);
     }
     
-    // 7. 书籍详情页处理（默认路由）
+    // 7. 书籍详情页处理
     return await handleBookDetail(path, env);
     
   } catch (error) {
-    // 统一错误处理
     console.error(`路由处理错误: ${path}`, error);
     
-    // 根据错误类型返回适当的状态码
     const status = error.message.includes('不存在') ? 404 : 500;
     const message = status === 404 ? '页面未找到' : '服务器内部错误';
     
@@ -306,58 +292,51 @@ export async function onRequest(context) {
   }
 }
 
-
 async function handleBookDetail(path, env) {
-    const bookId = path.slice(1); // 提取书籍 ID
-    if (!bookId) {
-        return new Response("请提供书籍ID", { status: 400 });
+  const bookId = path.slice(1);
+  if (!bookId) {
+    return new Response("请提供书籍ID", { status: 400 });
+  }
+
+  try {
+    const bookStmt = env.BOOKS_D1.prepare(`
+      SELECT id, title, author, publisher, publish_data, 
+      ISBN, CAST(page_count AS INTEGER) as page_count 
+      FROM books WHERE id = ? LIMIT 1
+    `);
+    const book = await bookStmt.bind(bookId).first();
+
+    if (!book) {
+      return new Response("未找到该书籍", { status: 404 });
     }
 
-    try {
-        // 获取当前书籍信息
-        const bookStmt = env.BOOKS_D1.prepare(
-            `SELECT id, title, author, publisher, publish_data, 
-            ISBN, CAST(page_count AS INTEGER) as page_count 
-            FROM books WHERE id = ? LIMIT 1`
-        );
-        const book = await bookStmt.bind(bookId).first();
+    const relatedStmt = env.BOOKS_D1.prepare(`
+      SELECT id, title 
+      FROM books 
+      WHERE id != ? 
+      ORDER BY RANDOM() 
+      LIMIT 10
+    `);
+    const relatedBooks = await relatedStmt.bind(bookId).all();
 
-        if (!book) {
-            return new Response("未找到该书籍", { status: 404 });
-        }
+    const relatedBooksHtml = relatedBooks.results.map(book => 
+      `<a href="/${book.id}" class="related-item">${book.title}</a>`
+    ).join("");
 
-        // 获取随机推荐书籍列表
-        const relatedStmt = env.BOOKS_D1.prepare(`
-            SELECT id, title 
-            FROM books 
-            WHERE id != ? 
-            ORDER BY RANDOM() 
-            LIMIT 10
-        `);
-        const relatedBooks = await relatedStmt.bind(bookId).all();
+    book.initial_related_books = relatedBooksHtml;
 
-        // 生成相关书籍的HTML
-        const relatedBooksHtml = relatedBooks.results.map(book => 
-            `<a href="/${book.id}" class="related-item">${book.title}</a>`
-        ).join("");
+    const renderedHtml = HTML_TEMPLATE.replace(/\${(\w+)}/g, (_, key) => book[key] || '');
 
-        // 将相关书籍的HTML嵌入到模板中
-        book.initial_related_books = relatedBooksHtml;
-
-        // 渲染 HTML 模板，并替换变量
-        const renderedHtml = HTML_TEMPLATE.replace(/\${(\w+)}/g, (_, key) => book[key] || '');
-
-        return new Response(renderedHtml, {
-            headers: { 'content-type': 'text/html;charset=UTF-8' }
-        });
-    } catch (err) {
-        return new Response(`服务器错误: ${err.message}`, { 
-            status: 500,
-            headers: { 'content-type': 'text/plain;charset=UTF-8' }
-        });
-    }
+    return new Response(renderedHtml, {
+      headers: { 'content-type': 'text/html;charset=UTF-8' }
+    });
+  } catch (err) {
+    return new Response(`服务器错误: ${err.message}`, { 
+      status: 500,
+      headers: { 'content-type': 'text/plain;charset=UTF-8' }
+    });
+  }
 }
-
 
 async function handleRandomBooks(env) {
   try {
@@ -369,7 +348,6 @@ async function handleRandomBooks(env) {
     `);
     
     const result = await stmt.all();
-    // 直接返回 results 数组，不需要 .results
     return new Response(JSON.stringify(result), {
       headers: {
         'content-type': 'application/json;charset=UTF-8',
@@ -381,131 +359,23 @@ async function handleRandomBooks(env) {
     console.error('获取随机书籍失败:', err);
     return new Response(JSON.stringify({ error: '获取随机书籍失败' }), {
       status: 500,
-      headers: { 
-        'content-type': 'application/json;charset=UTF-8'
-      }
+      headers: { 'content-type': 'application/json;charset=UTF-8' }
     });
   }
 }
 
-
-/**
- * 生成网站的站点地图
- * @param {Object} env - 环境变量对象，包含数据库连接
- * @param {Request} request - 请求对象
- * @returns {Response} 返回XML格式的站点地图
- */
-async function generateSitemap(env, request) {
-  try {
-    // 验证环境变量
-    if (!env?.BOOKS_D1) {
-      throw new Error('数据库配置错误：缺少BOOKS_D1环境变量');
-    }
-	// 为站点地图添加适当的响应头
-    const sitemapHeaders = {
-      'Content-Type': 'application/xml;charset=UTF-8',
-      'X-Robots-Tag': 'all',
-      'Cache-Control': 'public, max-age=3600', // 1小时缓存
-      'X-Content-Type-Options': 'nosniff'
-    };
-    // 配置常量
-    const URLS_PER_SITEMAP = 50000; // 每个站点地图包含的URL数量
-    const baseUrl = 'https://liberpdf.top';
-    const url = new URL(request.url);
-    const path = url.pathname;
-    
-    // 查询数据库中的总记录数
-    const countStmt = env.BOOKS_D1.prepare('SELECT COUNT(*) as count FROM books');
-    const { count } = await countStmt.first();
-    
-    // 处理主站点地图索引文件 (/sitemap.xml)
-    if (path === '/sitemap.xml') {
-      const sitemapCount = Math.ceil(count / URLS_PER_SITEMAP);
-      let indexContent = '<?xml version="1.0" encoding="UTF-8"?>\n';
-      indexContent += '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
-      
-      // 生成所有分页站点地图的索引
-      for (let i = 0; i < sitemapCount; i++) {
-        indexContent += `  <sitemap>\n    <loc>${baseUrl}/sitemap${i}.xml</loc>\n  </sitemap>\n`;
-      }
-      
-      indexContent += '</sitemapindex>';
-      return new Response(indexContent, {
-        headers: sitemapHeaders
-      });
-    }
-    
-    // 解析分页站点地图的页码 (/sitemap0.xml, /sitemap1.xml, ...)
-    const matches = path.match(/\/sitemap(\d+)\.xml/);
-    if (!matches) {
-      return new Response('无效的站点地图URL', { status: 400 });
-    }
-    
-    // 计算分页偏移量
-    const sitemapIndex = parseInt(matches[1]);
-    const offset = sitemapIndex * URLS_PER_SITEMAP;
-    
-    // 查询当前分页的图书记录
-    const stmt = env.BOOKS_D1.prepare(
-      'SELECT id FROM books LIMIT ? OFFSET ?'
-    ).bind(URLS_PER_SITEMAP, offset);
-    
-    const results = await stmt.all();
-    const rows = results.results || results;
-
-    // 检查查询结果
-    if (!rows?.length) {
-      return new Response('未找到数据', { status: 404 });
-    }
-
-    // 生成分页站点地图的XML内容
-    let sitemapContent = '<?xml version="1.0" encoding="UTF-8"?>\n';
-    sitemapContent += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
-    
-    // 为每本图书生成URL条目
-    for (const row of rows) {
-      if (row?.id) {
-        sitemapContent += `  <url>\n    <loc>${baseUrl}/${row.id}</loc>\n  </url>\n`;
-      }
-    }
-    
-    sitemapContent += '</urlset>';
-
-    return new Response(sitemapContent, {
-      headers: sitemapHeaders
-    });
-
-  } catch (err) {
-    console.error('站点地图生成失败:', err);
-    return new Response(`站点地图生成失败: ${err.message}`, { 
-      status: 500,
-      headers: { 'Content-Type': 'text/plain;charset=UTF-8' }
-    });
-  }
-}
-
-/**
- * 生成分页站点地图
- * @param {Object} env - 环境变量对象，包含数据库连接
- * @param {AbortSignal} signal - 用于控制超时
- * @param {number} sitemapIndex - 当前站点地图的分页索引
- * @returns {Response} 返回分页的站点地图 XML 文件
- */
 async function generateSitemap(env, signal, sitemapIndex) {
   try {
-    const URLS_PER_SITEMAP = 50000;  // 每个站点地图最多包含的 URL 数量
+    const URLS_PER_SITEMAP = 50000;
     const baseUrl = 'https://liberpdf.top';
-    
-    // 查询数据库中图书的总数量
+
     const countStmt = env.BOOKS_D1.prepare('SELECT COUNT(*) as count FROM books');
     const { count } = await countStmt.first();
     console.log(`总记录数: ${count}`);
-    
-    // 计算需要多少个站点地图文件
+
     const totalPages = Math.ceil(count / URLS_PER_SITEMAP);
     console.log(`需要生成 ${totalPages} 个站点地图文件`);
 
-    // 处理站点地图分页：根据 `sitemapIndex` 获取特定的分页站点地图
     const offset = sitemapIndex * URLS_PER_SITEMAP;
     const stmt = env.BOOKS_D1.prepare(
       'SELECT id FROM books LIMIT ? OFFSET ?'
@@ -518,11 +388,9 @@ async function generateSitemap(env, signal, sitemapIndex) {
       return new Response('未找到数据', { status: 404 });
     }
 
-    // 生成站点地图的 XML 内容
     let sitemapContent = '<?xml version="1.0" encoding="UTF-8"?>\n';
     sitemapContent += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
 
-    // 为每本书生成一个 URL 条目
     for (const row of rows) {
       if (row?.id) {
         sitemapContent += `  <url>\n    <loc>${baseUrl}/${row.id}</loc>\n  </url>\n`;
@@ -531,17 +399,16 @@ async function generateSitemap(env, signal, sitemapIndex) {
 
     sitemapContent += '</urlset>';
 
-    // 返回站点地图文件的响应
     return new Response(sitemapContent, {
       headers: {
         'Content-Type': 'application/xml;charset=UTF-8',
-        'Cache-Control': 'no-store',
-      },
+        'Cache-Control': 'no-store'
+      }
     });
 
   } catch (err) {
     console.error('生成站点地图失败:', err);
-    return new Response(`生成站点地图失败: ${err.message}`, { 
+    return new Response(`生成站点地图失败: ${err.message}`, {
       status: 500,
       headers: { 'Content-Type': 'text/plain;charset=UTF-8' }
     });
