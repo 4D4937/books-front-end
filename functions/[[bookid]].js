@@ -335,36 +335,21 @@ async function handleRandomBooks(env) {
 
 async function handleIndexRandomBooks(env) {
   try {
-    // 诊断：显示总记录数
-    const countStmt = await env.BOOKS_D1.prepare('SELECT COUNT(*) as count FROM books');
-    const countResult = await countStmt.first();
-    console.log('数据库总记录数:', countResult?.count);
-
-    // 尝试直接获取所有记录（用于调试）
-    const debugStmt = await env.BOOKS_D1.prepare('SELECT id FROM books LIMIT 5');
-    const debugResults = await debugStmt.all();
-    console.log('调试查询结果:', debugResults);
-
-    // 主查询
     const stmt = await env.BOOKS_D1.prepare(
-      'SELECT id FROM books LIMIT 10'  // 暂时去掉 RANDOM()，减少记录数用于测试
+      'SELECT id FROM books ORDER BY RANDOM() LIMIT 1000'
     );
     const results = await stmt.all();
-    console.log('主查询结果:', results);
     
-    if (!results?.rows?.length) {
-      return new Response(`
-        调试信息：<br>
-        总记录数: ${countResult?.count || 0}<br>
-        查询SQL: SELECT id FROM books LIMIT 10<br>
-        查询结果: ${JSON.stringify(results)}<br>
-      `, {
+    // results.results 包含实际的数据数组
+    if (!results?.results?.length) {
+      return new Response('没有找到记录', {
         status: 404,
-        headers: { 'content-type': 'text/html;charset=UTF-8' }
+        headers: { 'content-type': 'text/plain;charset=UTF-8' }
       });
     }
     
-    const links = results.rows.map(row => 
+    // 使用 results.results 而不是 results.rows
+    const links = results.results.map(row => 
       `<a href="https://liberpdf.top/${row.id}">${row.id}</a><br>`
     ).join('\n');
     
@@ -376,14 +361,10 @@ async function handleIndexRandomBooks(env) {
     });
     
   } catch (error) {
-    console.error('错误:', error);
-    return new Response(`
-      错误详情：<br>
-      消息: ${error.message}<br>
-      堆栈: ${error.stack}<br>
-    `, {
+    console.error('错误:', error.message);
+    return new Response(`错误: ${error.message}`, {
       status: 500,
-      headers: { 'content-type': 'text/html;charset=UTF-8' }
+      headers: { 'content-type': 'text/plain;charset=UTF-8' }
     });
   }
 }
