@@ -338,36 +338,30 @@ async function handleIndexRandomBooks(env) {
     // 从 D1 数据库随机获取 1000 条记录
     const stmt = await env.BOOKS_D1.prepare(
       'SELECT id FROM books ORDER BY RANDOM() LIMIT 1000'
-    );
-    const results = await stmt.all();
+    ).catch(err => {
+      throw new Error('数据库查询失败: ' + err.message);
+    });
     
-    // 构建 HTML 响应
+    const results = await stmt.all();
+    if (!results || !results.rows || !results.rows.length) {
+      throw new Error('未找到记录');
+    }
+    
+    // 构建简单的链接列表
     const links = results.rows.map(row => 
-      `<a href="https://liberpdf.top/${row.id}" target="_blank">liberpdf.top/${row.id}</a><br>`
+      `<a href="https://liberpdf.top/${row.id}">${row.id}</a><br>`
     ).join('\n');
     
-    const html = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Random PDF Links</title>
-        <meta charset="utf-8">
-      </head>
-      <body>
-        ${links}
-      </body>
-      </html>
-    `;
-    
-    return new Response(html, {
+    return new Response(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Random PDF Links</title></head><body>${links}</body></html>`, {
       headers: {
         'content-type': 'text/html;charset=UTF-8',
         'Cache-Control': 'no-cache'
       }
     });
+    
   } catch (error) {
-    console.error('获取随机书籍错误:', error);
-    return new Response('服务器错误', {
+    console.error('错误:', error.message);
+    return new Response(`错误: ${error.message}`, {
       status: 500,
       headers: { 'content-type': 'text/plain;charset=UTF-8' }
     });
