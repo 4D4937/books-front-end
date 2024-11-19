@@ -177,22 +177,27 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
 </body>
 </html>`;
 
-
 export async function onRequest(context) {
   const { request, env } = context;
   const url = new URL(request.url);
   const path = url.pathname;
 
   try {
-    // 1. 首页路由处理
-    // 1. 首页和根目录文件路由处理
-    const response = await context.next();
-    if (response) return response;
-    
+    // 1. 首页和基础页面路由处理
+    if (path === '/' || path === '/index.html' || path === '/buy') {
+      const response = await context.next();
+      if (response) return response;
+    }
 
+    // 2. sitemap 相关文件处理
+    if (path.match(/^\/sitemap(-\d+)?\.xml$/)) {
+      const response = await context.next();
+      if (response) return response;
+      throw new Error('sitemap文件不存在');
+    }
 
     // 3. 静态页面路由处理
-    const staticPages = ['buy', 'about', 'contact'];
+    const staticPages = ['about', 'contact'];
     const pageName = path.slice(1).split('.')[0];
     
     if (staticPages.includes(pageName)) {
@@ -205,9 +210,9 @@ export async function onRequest(context) {
     if (path === '/robots.txt') {
       return new Response(
         `User-agent: *
-		Allow: /
-		Sitemap: https://liberpdf.top/sitemap.xml
-		Crawl-delay: 1`, {
+        Allow: /
+        Sitemap: https://liberpdf.top/sitemap.xml
+        Crawl-delay: 1`, {
         headers: { 
           'content-type': 'text/plain;charset=UTF-8',
           'Cache-Control': 'public, max-age=86400',
@@ -229,7 +234,12 @@ export async function onRequest(context) {
     }
     
     // 7. 书籍详情页处理
-    return await handleBookDetail(path, env);
+    if (path.match(/^\/[a-zA-Z0-9-]+$/)) {
+      return await handleBookDetail(path, env);
+    }
+
+    // 如果没有匹配到任何路由，抛出 404 错误
+    throw new Error('页面不存在');
     
   } catch (error) {
     console.error(`路由处理错误: ${path}`, error);
@@ -243,6 +253,7 @@ export async function onRequest(context) {
     });
   }
 }
+
 
 async function handleBookDetail(path, env) {
   const bookId = path.slice(1);
