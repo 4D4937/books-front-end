@@ -335,28 +335,30 @@ async function handleRandomBooks(env) {
 
 async function handleIndexRandomBooks(env) {
   try {
-    let stmt;
-    try {
-      // 从 D1 数据库随机获取 1000 条记录
-      stmt = await env.BOOKS_D1.prepare(
-        'SELECT id FROM books ORDER BY RANDOM() LIMIT 1000'
-      );
-    } catch (dbError) {
-      throw new Error('数据库查询准备失败: ' + dbError.message);
-    }
+    // 首先检查数据库中是否有记录
+    const countStmt = await env.BOOKS_D1.prepare('SELECT COUNT(*) as count FROM books');
+    const countResult = await countStmt.first();
     
-    let results;
-    try {
-      results = await stmt.all();
-    } catch (execError) {
-      throw new Error('数据库执行失败: ' + execError.message);
+    if (!countResult || countResult.count === 0) {
+      return new Response('数据库中暂无记录', {
+        status: 404,
+        headers: { 'content-type': 'text/plain;charset=UTF-8' }
+      });
     }
+
+    // 如果有记录，则随机获取
+    const stmt = await env.BOOKS_D1.prepare(
+      'SELECT id FROM books ORDER BY RANDOM() LIMIT 1000'
+    );
+    const results = await stmt.all();
     
     if (!results || !results.rows || !results.rows.length) {
-      throw new Error('未找到记录');
+      return new Response('查询结果为空', {
+        status: 404,
+        headers: { 'content-type': 'text/plain;charset=UTF-8' }
+      });
     }
     
-    // 构建简单的链接列表
     const links = results.rows.map(row => 
       `<a href="https://liberpdf.top/${row.id}">${row.id}</a><br>`
     ).join('\n');
