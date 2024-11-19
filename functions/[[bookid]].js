@@ -184,8 +184,9 @@ export async function onRequest(context) {
 
   try {
     // 1. 首页和基础页面路由处理
-	if (path === '/' || path === '/index.html')
+	if (path === '/' || path === '/index.html') {
 		return await handleIndexRandomBooks(env)
+	}
 	
     if (path === '/buy') {
       const response = await context.next();
