@@ -1,4 +1,5 @@
-import JSZip from 'https://esm.sh/jszip@3.10.1';
+import JSZip from 'https://unpkg.com/jszip@3.10.1/dist/jszip.min.js';
+
 
 // 内联 CSS
 const INLINE_STYLES = `
