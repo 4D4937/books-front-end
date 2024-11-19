@@ -189,55 +189,7 @@ export async function onRequest(context) {
       return await context.next();
     }
     
-    // 2. 站点地图路由处理
-    if (path.match(/^\/sitemap\d*\.xml$/)) {
-      console.log('正在生成站点地图...');
-      return await generateSitemap(env, request);
-    }
 
-    // 处理请求 /api/sitemaps
-    if (path === '/api/sitemaps') {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 50000);
-
-      try {
-        const sitemapLinks = await generateSitemapLinks(env, controller.signal);
-        clearTimeout(timeoutId);
-        
-        return new Response(JSON.stringify({ sitemaps: sitemapLinks }), {
-          headers: {
-            'Content-Type': 'application/json;charset=UTF-8',
-            'Cache-Control': 'no-store'
-          }
-        });
-      } catch (err) {
-        clearTimeout(timeoutId);
-        if (err.name === 'AbortError') {
-          return new Response('请求超时', { status: 504 });
-        }
-        throw err;
-      }
-    }
-
-    // 处理分页站点地图请求
-    const matches = path.match(/^\/api\/sitemap\/(\d+)$/);
-    if (matches) {
-      const sitemapIndex = parseInt(matches[1]);
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 50000);
-
-      try {
-        const response = await generateSitemap(env, controller.signal, sitemapIndex);
-        clearTimeout(timeoutId);
-        return response;
-      } catch (err) {
-        clearTimeout(timeoutId);
-        if (err.name === 'AbortError') {
-          return new Response('请求超时', { status: 504 });
-        }
-        throw err;
-      }
-    }
 
     // 3. 静态页面路由处理
     const staticPages = ['buy', 'about', 'contact'];
@@ -361,81 +313,5 @@ async function handleRandomBooks(env) {
       status: 500,
       headers: { 'content-type': 'application/json;charset=UTF-8' }
     });
-  }
-}
-
-async function generateSitemap(env, signal, sitemapIndex) {
-  try {
-    const URLS_PER_SITEMAP = 50000;
-    const baseUrl = 'https://liberpdf.top';
-
-    const countStmt = env.BOOKS_D1.prepare('SELECT COUNT(*) as count FROM books');
-    const { count } = await countStmt.first();
-    console.log(`总记录数: ${count}`);
-
-    const totalPages = Math.ceil(count / URLS_PER_SITEMAP);
-    console.log(`需要生成 ${totalPages} 个站点地图文件`);
-
-    const offset = sitemapIndex * URLS_PER_SITEMAP;
-    const stmt = env.BOOKS_D1.prepare(
-      'SELECT id FROM books LIMIT ? OFFSET ?'
-    ).bind(URLS_PER_SITEMAP, offset);
-
-    const results = await stmt.all();
-    const rows = results.results;
-
-    if (!rows || rows.length === 0) {
-      return new Response('未找到数据', { status: 404 });
-    }
-
-    let sitemapContent = '<?xml version="1.0" encoding="UTF-8"?>\n';
-    sitemapContent += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
-
-    for (const row of rows) {
-      if (row?.id) {
-        sitemapContent += `  <url>\n    <loc>${baseUrl}/${row.id}</loc>\n  </url>\n`;
-      }
-    }
-
-    sitemapContent += '</urlset>';
-
-    return new Response(sitemapContent, {
-      headers: {
-        'Content-Type': 'application/xml;charset=UTF-8',
-        'Cache-Control': 'no-store'
-      }
-    });
-
-  } catch (err) {
-    console.error('生成站点地图失败:', err);
-    return new Response(`生成站点地图失败: ${err.message}`, {
-      status: 500,
-      headers: { 'Content-Type': 'text/plain;charset=UTF-8' }
-    });
-  }
-}
-
-async function generateSitemapLinks(env, signal) {
-  try {
-    const URLS_PER_SITEMAP = 50000;
-    const baseUrl = 'https://liberpdf.top';
-
-    // 获取总记录数
-    const countStmt = env.BOOKS_D1.prepare('SELECT COUNT(*) as count FROM books');
-    const { count } = await countStmt.first();
-    
-    // 计算需要多少个站点地图文件
-    const totalPages = Math.ceil(count / URLS_PER_SITEMAP);
-    
-    // 生成站点地图链接列表
-    const sitemapLinks = [];
-    for (let i = 0; i < totalPages; i++) {
-      sitemapLinks.push(`${baseUrl}/sitemap${i + 1}.xml`);
-    }
-    
-    return sitemapLinks;
-  } catch (err) {
-    console.error('生成站点地图链接失败:', err);
-    throw new Error('生成站点地图链接失败');
   }
 }
