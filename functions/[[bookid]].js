@@ -186,10 +186,8 @@ export async function onRequest(context) {
   try {
     // 1. 首页路由处理
     // 1. 首页和根目录文件路由处理
-    if (path === '/' || path === '/index.html' || !path.includes('/')) {
-      const response = await context.next();
-      if (response) return response;
-    }
+    const response = await context.next();
+    if (response) return response;
     
 
 
