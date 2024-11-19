@@ -1,3 +1,5 @@
+import JSZip from 'https://esm.sh/jszip@3.10.1';
+
 // 内联 CSS
 const INLINE_STYLES = `
 <style>
@@ -202,6 +204,24 @@ export async function onRequest(context) {
       console.log('正在生成站点地图...');
       return await generateSitemap(env, request);
     }
+	
+	// 修改路由处理，添加错误处理和超时控制
+	if (path === '/api/sitemap') {
+		const controller = new AbortController();
+		const timeoutId = setTimeout(() => controller.abort(), 50000); // 50秒超时
+		
+		try {
+			const response = await generateSitemapZip(env, controller.signal);
+			clearTimeout(timeoutId);
+			return response;
+		} catch (err) {
+			clearTimeout(timeoutId);
+			if (err.name === 'AbortError') {
+				return new Response('Request timeout', { status: 504 });
+			}
+			throw err;
+		}
+	}
     
     // 3. 静态页面路由处理
     const staticPages = ['buy', 'about', 'contact']; // 可配置的静态页面列表
@@ -434,4 +454,90 @@ async function generateSitemap(env, request) {
       headers: { 'Content-Type': 'text/plain;charset=UTF-8' }
     });
   }
+}
+
+
+// 修改生成函数，添加进度日志
+async function generateSitemapZip(env, signal) {
+    try {
+        console.log('开始生成站点地图...');
+        const URLS_PER_SITEMAP = 50000;
+        const baseUrl = 'https://liberpdf.top';
+        
+        // 获取总记录数
+        const countStmt = env.BOOKS_D1.prepare('SELECT COUNT(*) as count FROM books');
+        const { count } = await countStmt.first();
+        console.log(`总记录数: ${count}`);
+        
+        // 计算需要多少个站点地图文件
+        const totalPages = Math.ceil(count / URLS_PER_SITEMAP);
+        console.log(`需要生成 ${totalPages} 个站点地图文件`);
+        
+        // 创建 zip 实例
+        const zip = new JSZip();
+        
+        // 生成主站点地图
+        console.log('生成主站点地图...');
+        let indexContent = '<?xml version="1.0" encoding="UTF-8"?>\n';
+        indexContent += '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+        for (let i = 0; i < totalPages; i++) {
+            indexContent += `  <sitemap>\n    <loc>${baseUrl}/api/sitemap/${i}</loc>\n  </sitemap>\n`;
+        }
+        indexContent += '</sitemapindex>';
+        zip.file('sitemap.xml', indexContent);
+        
+        // 分批生成子站点地图
+        for (let page = 0; page < totalPages; page++) {
+            // 检查是否已超时
+            if (signal?.aborted) {
+                throw new Error('Request timeout');
+            }
+            
+            console.log(`生成第 ${page + 1}/${totalPages} 个站点地图...`);
+            const offset = page * URLS_PER_SITEMAP;
+            const stmt = env.BOOKS_D1.prepare(
+                'SELECT id FROM books LIMIT ? OFFSET ?'
+            ).bind(URLS_PER_SITEMAP, offset);
+            
+            const results = await stmt.all();
+            const rows = results.results;
+            
+            let sitemapContent = '<?xml version="1.0" encoding="UTF-8"?>\n';
+            sitemapContent += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+            
+            for (const row of rows) {
+                if (row?.id) {
+                    sitemapContent += `  <url>\n    <loc>${baseUrl}/${row.id}</loc>\n  </url>\n`;
+                }
+            }
+            
+            sitemapContent += '</urlset>';
+            zip.file(`sitemap${page}.xml`, sitemapContent);
+        }
+        
+        console.log('生成 ZIP 文件...');
+        const zipContent = await zip.generateAsync({
+            type: 'uint8array',
+            compression: 'DEFLATE',
+            compressionOptions: {
+                level: 9
+            }
+        });
+        
+        console.log('ZIP 文件生成完成');
+        return new Response(zipContent, {
+            headers: {
+                'Content-Type': 'application/zip',
+                'Content-Disposition': 'attachment; filename="sitemaps.zip"',
+                'Cache-Control': 'no-store'
+            }
+        });
+        
+    } catch (err) {
+        console.error('生成站点地图失败:', err);
+        return new Response(`生成站点地图失败: ${err.message}`, { 
+            status: 500,
+            headers: { 'Content-Type': 'text/plain;charset=UTF-8' }
+        });
+    }
 }
