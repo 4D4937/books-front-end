@@ -4,62 +4,34 @@
     <title>Random PDF Links</title>
 </head>
 <body>
-    <div id="status">加载中...</div>
     <div id="links"></div>
 
     <script>
         async function getRandomLinks() {
-            const statusDiv = document.getElementById('status');
-            const linksDiv = document.getElementById('links');
-            
             try {
-                // 设置超时
-                const timeoutPromise = new Promise((_, reject) => {
-                    setTimeout(() => reject(new Error('请求超时')), 10000);
-                });
+                // 从 D1 数据库获取随机 1000 条记录
+                const response = await fetch('/api/random-links');
+                const data = await response.json();
                 
-                const fetchPromise = fetch('/api/getRandomBooks');
-                const response = await Promise.race([fetchPromise, timeoutPromise]);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP错误: ${response.status}`);
-                }
-                
-                const books = await response.json();
-                
-                if (!Array.isArray(books) || books.length === 0) {
-                    throw new Error('未获取到数据');
-                }
-
-                statusDiv.style.display = 'none';
-                
-                // 遍历并显示链接
-                books.forEach(book => {
-                    if (!book.id) return; // 跳过无效数据
-                    
+                // 显示链接
+                const linksDiv = document.getElementById('links');
+                data.forEach(id => {
                     const link = document.createElement('a');
-                    link.href = `https://liberpdf.top/${book.id}`;
-                    link.textContent = `Book ${book.id}`;
+                    link.href = `https://liberpdf.top/${id}`;
+                    link.textContent = `liberpdf.top/${id}`;
+                    link.target = '_blank';
                     
                     const lineBreak = document.createElement('br');
                     linksDiv.appendChild(link);
                     linksDiv.appendChild(lineBreak);
                 });
             } catch (error) {
-                statusDiv.style.color = 'red';
-                statusDiv.textContent = `错误: ${error.message}`;
                 console.error('Error:', error);
             }
         }
 
-        // 添加重试按钮
-        const retryButton = document.createElement('button');
-        retryButton.textContent = '重试';
-        retryButton.onclick = getRandomLinks;
-        document.body.insertBefore(retryButton, document.getElementById('links'));
-
         // 页面加载时获取链接
-        window.onload = getRandomLinks;
+        getRandomLinks();
     </script>
 </body>
 </html>

@@ -184,7 +184,10 @@ export async function onRequest(context) {
 
   try {
     // 1. 首页和基础页面路由处理
-    if (path === '/' || path === '/index.html' || path === '/buy') {
+	if (path === '/' || path === '/index.html')
+		return await handleIndexRandomBooks(env)
+	
+    if (path === '/buy') {
       const response = await context.next();
       if (response) return response;
     }
@@ -233,19 +236,6 @@ export async function onRequest(context) {
       return await handleRandomBooks(env);
     }
 	
-	if (request.url.endsWith('/api/getRandomBooks')) {
-	// 从D1数据库随机获取1000条记录
-	const stmt = env.BOOKS_D1.prepare(
-		'SELECT id FROM books ORDER BY RANDOM() LIMIT 1000'
-	);
-	
-	const result = await stmt.all();
-	return new Response(JSON.stringify(result), {
-		headers: {
-			'Content-Type': 'application/json',
-		}
-	});
-	}
     
     // 7. 书籍详情页处理
     if (path.match(/^\/[a-zA-Z0-9-]+$/)) {
@@ -337,6 +327,48 @@ async function handleRandomBooks(env) {
     return new Response(JSON.stringify({ error: '获取随机书籍失败' }), {
       status: 500,
       headers: { 'content-type': 'application/json;charset=UTF-8' }
+    });
+  }
+}
+
+
+async function handleIndexRandomBooks(env) {
+  try {
+    // 从 D1 数据库随机获取 1000 条记录
+    const stmt = await env.BOOKS_D1.prepare(
+      'SELECT id FROM books ORDER BY RANDOM() LIMIT 1000'
+    );
+    const results = await stmt.all();
+    
+    // 构建 HTML 响应
+    const links = results.rows.map(row => 
+      `<a href="https://liberpdf.top/${row.id}" target="_blank">liberpdf.top/${row.id}</a><br>`
+    ).join('\n');
+    
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Random PDF Links</title>
+        <meta charset="utf-8">
+      </head>
+      <body>
+        ${links}
+      </body>
+      </html>
+    `;
+    
+    return new Response(html, {
+      headers: {
+        'content-type': 'text/html;charset=UTF-8',
+        'Cache-Control': 'no-cache'
+      }
+    });
+  } catch (error) {
+    console.error('获取随机书籍错误:', error);
+    return new Response('服务器错误', {
+      status: 500,
+      headers: { 'content-type': 'text/plain;charset=UTF-8' }
     });
   }
 }
