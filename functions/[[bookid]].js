@@ -353,7 +353,7 @@ async function handleIndexRandomBooks(env) {
       `<a href="https://liberpdf.top/${row.id}">${row.id}</a><br>`
     ).join('\n');
     
-    return new Response(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Random PDF Links</title></head><body>${links}</body></html>`, {
+    return new Response(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Urls</title></head><body>${links}</body></html>`, {
       headers: {
         'content-type': 'text/html;charset=UTF-8',
         'Cache-Control': 'no-cache'
