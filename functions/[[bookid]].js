@@ -232,6 +232,20 @@ export async function onRequest(context) {
     if (path === '/api/random-books') {
       return await handleRandomBooks(env);
     }
+	
+	if (request.url.endsWith('/api/getRandomBooks')) {
+	// 从D1数据库随机获取1000条记录
+	const stmt = env.BOOKS_D1.prepare(
+		'SELECT id FROM books ORDER BY RANDOM() LIMIT 1000'
+	);
+	
+	const result = await stmt.all();
+	return new Response(JSON.stringify(result), {
+		headers: {
+			'Content-Type': 'application/json',
+		}
+	});
+	}
     
     // 7. 书籍详情页处理
     if (path.match(/^\/[a-zA-Z0-9-]+$/)) {
