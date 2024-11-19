@@ -414,3 +414,28 @@ async function generateSitemap(env, signal, sitemapIndex) {
     });
   }
 }
+
+async function generateSitemapLinks(env, signal) {
+  try {
+    const URLS_PER_SITEMAP = 50000;
+    const baseUrl = 'https://liberpdf.top';
+
+    // 获取总记录数
+    const countStmt = env.BOOKS_D1.prepare('SELECT COUNT(*) as count FROM books');
+    const { count } = await countStmt.first();
+    
+    // 计算需要多少个站点地图文件
+    const totalPages = Math.ceil(count / URLS_PER_SITEMAP);
+    
+    // 生成站点地图链接列表
+    const sitemapLinks = [];
+    for (let i = 0; i < totalPages; i++) {
+      sitemapLinks.push(`${baseUrl}/sitemap${i + 1}.xml`);
+    }
+    
+    return sitemapLinks;
+  } catch (err) {
+    console.error('生成站点地图链接失败:', err);
+    throw new Error('生成站点地图链接失败');
+  }
+}
