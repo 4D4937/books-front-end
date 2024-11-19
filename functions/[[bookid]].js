@@ -1,5 +1,3 @@
-import JSZip from 'https://unpkg.com/jszip@3.10.1/dist/jszip.min.js';
-
 
 // 内联 CSS
 const INLINE_STYLES = `
@@ -206,23 +204,52 @@ export async function onRequest(context) {
       return await generateSitemap(env, request);
     }
 	
-	// 修改路由处理，添加错误处理和超时控制
-	if (path === '/api/sitemap') {
-		const controller = new AbortController();
-		const timeoutId = setTimeout(() => controller.abort(), 50000); // 50秒超时
-		
-		try {
-			const response = await generateSitemapZip(env, controller.signal);
-			clearTimeout(timeoutId);
-			return response;
-		} catch (err) {
-			clearTimeout(timeoutId);
-			if (err.name === 'AbortError') {
-				return new Response('Request timeout', { status: 504 });
-			}
-			throw err;
-		}
-	}
+  try {
+    // 处理请求 `/api/sitemaps`，返回所有站点地图分页的下载链接
+    if (path === '/api/sitemaps') {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 50000); // 设置超时为 50秒
+
+      try {
+        // 获取总记录数并计算分页
+        const sitemapLinks = await generateSitemapLinks(env, controller.signal);
+        clearTimeout(timeoutId);
+        
+        // 返回一个包含所有分页站点地图的下载链接
+        return new Response(JSON.stringify({ sitemaps: sitemapLinks }), {
+          headers: {
+            'Content-Type': 'application/json;charset=UTF-8',
+            'Cache-Control': 'no-store',
+          },
+        });
+      } catch (err) {
+        clearTimeout(timeoutId);
+        if (err.name === 'AbortError') {
+          return new Response('请求超时', { status: 504 });
+        }
+        throw err;
+      }
+    }
+
+    // 处理分页站点地图请求：`/api/sitemap/{index}`
+    const matches = path.match(/^\/api\/sitemap\/(\d+)$/);
+    if (matches) {
+      const sitemapIndex = parseInt(matches[1]);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 50000); // 设置超时为 50秒
+
+      try {
+        const response = await generateSitemap(env, controller.signal, sitemapIndex);
+        clearTimeout(timeoutId);
+        return response;
+      } catch (err) {
+        clearTimeout(timeoutId);
+        if (err.name === 'AbortError') {
+          return new Response('请求超时', { status: 504 });
+        }
+        throw err;
+      }
+    }
     
     // 3. 静态页面路由处理
     const staticPages = ['buy', 'about', 'contact']; // 可配置的静态页面列表
@@ -457,88 +484,66 @@ async function generateSitemap(env, request) {
   }
 }
 
+/**
+ * 生成分页站点地图
+ * @param {Object} env - 环境变量对象，包含数据库连接
+ * @param {AbortSignal} signal - 用于控制超时
+ * @param {number} sitemapIndex - 当前站点地图的分页索引
+ * @returns {Response} 返回分页的站点地图 XML 文件
+ */
+async function generateSitemap(env, signal, sitemapIndex) {
+  try {
+    const URLS_PER_SITEMAP = 50000;  // 每个站点地图最多包含的 URL 数量
+    const baseUrl = 'https://liberpdf.top';
+    
+    // 查询数据库中图书的总数量
+    const countStmt = env.BOOKS_D1.prepare('SELECT COUNT(*) as count FROM books');
+    const { count } = await countStmt.first();
+    console.log(`总记录数: ${count}`);
+    
+    // 计算需要多少个站点地图文件
+    const totalPages = Math.ceil(count / URLS_PER_SITEMAP);
+    console.log(`需要生成 ${totalPages} 个站点地图文件`);
 
-// 修改生成函数，添加进度日志
-async function generateSitemapZip(env, signal) {
-    try {
-        console.log('开始生成站点地图...');
-        const URLS_PER_SITEMAP = 50000;
-        const baseUrl = 'https://liberpdf.top';
-        
-        // 获取总记录数
-        const countStmt = env.BOOKS_D1.prepare('SELECT COUNT(*) as count FROM books');
-        const { count } = await countStmt.first();
-        console.log(`总记录数: ${count}`);
-        
-        // 计算需要多少个站点地图文件
-        const totalPages = Math.ceil(count / URLS_PER_SITEMAP);
-        console.log(`需要生成 ${totalPages} 个站点地图文件`);
-        
-        // 创建 zip 实例
-        const zip = new JSZip();
-        
-        // 生成主站点地图
-        console.log('生成主站点地图...');
-        let indexContent = '<?xml version="1.0" encoding="UTF-8"?>\n';
-        indexContent += '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
-        for (let i = 0; i < totalPages; i++) {
-            indexContent += `  <sitemap>\n    <loc>${baseUrl}/api/sitemap/${i}</loc>\n  </sitemap>\n`;
-        }
-        indexContent += '</sitemapindex>';
-        zip.file('sitemap.xml', indexContent);
-        
-        // 分批生成子站点地图
-        for (let page = 0; page < totalPages; page++) {
-            // 检查是否已超时
-            if (signal?.aborted) {
-                throw new Error('Request timeout');
-            }
-            
-            console.log(`生成第 ${page + 1}/${totalPages} 个站点地图...`);
-            const offset = page * URLS_PER_SITEMAP;
-            const stmt = env.BOOKS_D1.prepare(
-                'SELECT id FROM books LIMIT ? OFFSET ?'
-            ).bind(URLS_PER_SITEMAP, offset);
-            
-            const results = await stmt.all();
-            const rows = results.results;
-            
-            let sitemapContent = '<?xml version="1.0" encoding="UTF-8"?>\n';
-            sitemapContent += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
-            
-            for (const row of rows) {
-                if (row?.id) {
-                    sitemapContent += `  <url>\n    <loc>${baseUrl}/${row.id}</loc>\n  </url>\n`;
-                }
-            }
-            
-            sitemapContent += '</urlset>';
-            zip.file(`sitemap${page}.xml`, sitemapContent);
-        }
-        
-        console.log('生成 ZIP 文件...');
-        const zipContent = await zip.generateAsync({
-            type: 'uint8array',
-            compression: 'DEFLATE',
-            compressionOptions: {
-                level: 9
-            }
-        });
-        
-        console.log('ZIP 文件生成完成');
-        return new Response(zipContent, {
-            headers: {
-                'Content-Type': 'application/zip',
-                'Content-Disposition': 'attachment; filename="sitemaps.zip"',
-                'Cache-Control': 'no-store'
-            }
-        });
-        
-    } catch (err) {
-        console.error('生成站点地图失败:', err);
-        return new Response(`生成站点地图失败: ${err.message}`, { 
-            status: 500,
-            headers: { 'Content-Type': 'text/plain;charset=UTF-8' }
-        });
+    // 处理站点地图分页：根据 `sitemapIndex` 获取特定的分页站点地图
+    const offset = sitemapIndex * URLS_PER_SITEMAP;
+    const stmt = env.BOOKS_D1.prepare(
+      'SELECT id FROM books LIMIT ? OFFSET ?'
+    ).bind(URLS_PER_SITEMAP, offset);
+
+    const results = await stmt.all();
+    const rows = results.results;
+
+    if (!rows || rows.length === 0) {
+      return new Response('未找到数据', { status: 404 });
     }
+
+    // 生成站点地图的 XML 内容
+    let sitemapContent = '<?xml version="1.0" encoding="UTF-8"?>\n';
+    sitemapContent += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+
+    // 为每本书生成一个 URL 条目
+    for (const row of rows) {
+      if (row?.id) {
+        sitemapContent += `  <url>\n    <loc>${baseUrl}/${row.id}</loc>\n  </url>\n`;
+      }
+    }
+
+    sitemapContent += '</urlset>';
+
+    // 返回站点地图文件的响应
+    return new Response(sitemapContent, {
+      headers: {
+        'Content-Type': 'application/xml;charset=UTF-8',
+        'Cache-Control': 'no-store',
+      },
+    });
+
+  } catch (err) {
+    console.error('生成站点地图失败:', err);
+    return new Response(`生成站点地图失败: ${err.message}`, { 
+      status: 500,
+      headers: { 'Content-Type': 'text/plain;charset=UTF-8' }
+    });
+  }
 }
