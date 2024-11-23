@@ -1,0 +1,44 @@
+<div>
+  <h2>URLs</h2>
+  <ul id="urlList"></ul>
+</div>
+
+<script>
+async function getRandomUrlsFromSitemap() {
+  try {
+    const response = await fetch('/sitemap.xml');
+    const text = await response.text();
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(text, 'text/xml');
+    
+    const urls = Array.from(xmlDoc.getElementsByTagName('url'))
+      .map(url => url.getElementsByTagName('loc')[0].textContent);
+    
+    const shuffled = urls.sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, 500);
+  } catch (error) {
+    console.error('获取sitemap失败:', error);
+    return [];
+  }
+}
+
+function displayUrls(urls) {
+  const urlList = document.getElementById('urlList');
+  urlList.innerHTML = '';
+  
+  urls.forEach(url => {
+    const li = document.createElement('li');
+    const link = document.createElement('a');
+    link.href = url;
+    link.textContent = url;
+    link.target = '_blank';
+    li.appendChild(link);
+    urlList.appendChild(li);
+  });
+}
+
+window.addEventListener('load', async () => {
+  const randomUrls = await getRandomUrlsFromSitemap();
+  displayUrls(randomUrls);
+});
+</script>
