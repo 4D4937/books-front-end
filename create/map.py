@@ -12,11 +12,11 @@ def generate_sitemap():
     # 只获取上级目录中的文件（不遍历子目录）
     for file in os.listdir(parent_dir):
         if file.endswith('.html'):
-            # 获取文件的完整路径
-            file_path = os.path.join(parent_dir, file)
+            # 获取文件名（不含.html后缀）
+            file_name = file[:-5]  # 移除 '.html'
             
             # 将文件路径转换为URL格式
-            url = f"https://liberpdf.top/{file}"
+            url = f"https://liberpdf.top/{file_name}"
             
             # 添加URL到站点地图
             sitemap += '  <url>\n'
