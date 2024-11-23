@@ -9,21 +9,19 @@ def generate_sitemap():
     sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n'
     sitemap += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
     
-    # 遍历上级目录中的所有文件
-    for root, dirs, files in os.walk(parent_dir):
-        for file in files:
-            if file.endswith('.html'):
-                # 获取文件的完整路径
-                file_path = os.path.join(root, file)
-                
-                # 将文件路径转换为URL格式
-                relative_path = os.path.relpath(file_path, parent_dir)
-                url = f"https://liberpdf.top/{relative_path.replace(os.sep, '/')}"
-                
-                # 添加URL到站点地图
-                sitemap += '  <url>\n'
-                sitemap += f'    <loc>{url}</loc>\n'
-                sitemap += '  </url>\n'
+    # 只获取上级目录中的文件（不遍历子目录）
+    for file in os.listdir(parent_dir):
+        if file.endswith('.html'):
+            # 获取文件的完整路径
+            file_path = os.path.join(parent_dir, file)
+            
+            # 将文件路径转换为URL格式
+            url = f"https://liberpdf.top/{file}"
+            
+            # 添加URL到站点地图
+            sitemap += '  <url>\n'
+            sitemap += f'    <loc>{url}</loc>\n'
+            sitemap += '  </url>\n'
     
     sitemap += '</urlset>'
     
